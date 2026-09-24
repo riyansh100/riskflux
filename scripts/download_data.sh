@@ -8,4 +8,4 @@ DATASET="ethon0426/lending-club-20072020q1"
 OUT_DIR="data/raw"
 
 mkdir -p "$OUT_DIR"
-uv run kaggle datasets download "$DATASET" -p "$OUT_DIR"
+uv run kaggle datasets download "$DATASET" -p "$OUT_DIR" --quiet
