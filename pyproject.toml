@@ -4,7 +4,10 @@ version = "0.1.0"
 description = "Production-grade ML pipeline for loan default prediction on Lending Club data"
 readme = "README.md"
 requires-python = ">=3.11,<3.12"
-dependencies = []
+dependencies = [
+    "pandas>=3.0.6",
+    "pyarrow>=25.0.1",
+]
 
 [build-system]
 requires = ["hatchling"]
@@ -23,7 +26,15 @@ testpaths = ["tests"]
 [dependency-groups]
 dev = [
     "dvc[s3]>=3.67.1",
+    "ipykernel>=7.3.0",
+    "jupyterlab>=4.6.4",
     "kaggle>=2.2.4",
+    "matplotlib>=3.11.2",
+    "nbconvert>=7.17.1",
+    "openpyxl>=3.1.5",
     "pytest>=9.1.1",
     "ruff>=0.16.8",
 ]
+
+[tool.ruff.lint.per-file-ignores]
+"*.ipynb" = ["E501"]  # notebooks hold wide tables/markdown-ish strings; src/ keeps the 100-col limit
