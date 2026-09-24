@@ -1,2 +1,6 @@
 [core]
     analytics = false
+    remote = origin
+['remote "origin"']
+    url = s3://dvc
+    endpointurl = https://dagshub.com/riyansh100/riskflux.s3

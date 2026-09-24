@@ -1,0 +1,12 @@
+outs:
+- md5: d9ba1effd712733806c30c0561a3c3fc
+  size: 505408012
+  hash: md5
+  path: lending-club-20072020q1.zip
+  desc: >-
+    Raw Lending Club loan data 2007–2020Q3, byte-identical to the Kaggle download.
+    Contains Loan_status_2007-2020Q3.gzip (actually an UNCOMPRESSED CSV despite the
+    extension; first column is an unnamed pandas index) and LCDataDictionary.xlsx.
+  meta:
+    source: https://www.kaggle.com/datasets/ethon0426/lending-club-20072020q1
+    downloaded: '2026-09-24'
