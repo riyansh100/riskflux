@@ -8,7 +8,7 @@ registry with promotion, a containerized inference API, drift monitoring, automa
 retraining, and a model card.
 
 ## Status
-🚧 Step 1 done — raw data versioned with DVC (remote: DagsHub)
+🚧 Step 2 done — EDA complete (population, leakage audit, split defined)
 
 ## Stack
 Python 3.11 · uv · DVC · LightGBM · MLflow · FastAPI · Docker · Evidently · GitHub Actions · GCP Cloud Run
