@@ -47,6 +47,8 @@ Out-of-time test set: 239,705 loans issued 2016-07 … 2017-04 (after everything
 Details, caveats and ablations: [docs/DECISIONS.md](docs/DECISIONS.md).
 
 ## Experiment tracking & registry (MLflow on DagsHub)
+Runs and registered models: [dagshub.com/riyansh100/riskflux.mlflow](https://dagshub.com/riyansh100/riskflux.mlflow) — current champion: `riskflux-pd` v1.
+
 ```bash
 cp .env.example .env                                              # then add your DagsHub token
 uv run --env-file .env python -m riskflux.registry.log_run        # log run + register as @challenger
