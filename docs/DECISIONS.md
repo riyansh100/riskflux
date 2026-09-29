@@ -20,6 +20,8 @@ Evidence for data decisions: [`notebooks/01_eda.ipynb`](../notebooks/01_eda.ipyn
 | D12 | Additions | pandera data validation; SHAP reason codes in API | Catch bad data before training; US lenders must give reasons for denials (adverse action). |
 | D13 | Tooling | Python 3.11, uv, ruff, pytest | Fast, reproducible (lockfile), standard. |
 | D14 | Ingest | Stream CSV → parquet, every column as string | 1.77 GB CSV doesn't fit in pandas on 8 GB RAM; type inference from early rows is wrong for columns empty before 2012. Parsing is explicit in the clean stage. |
+| D15 | Clean stage | Stateless, strict parsing, two outputs: `loans_clean` (id, issue_d, y, 61 features) and `loans_aux` (LC decisions, outcomes, fairness columns). pandera contract validated before writing | Nothing learned from data here, so no test-set leakage. Unexpected source values fail loudly. Leakage columns physically can't reach the model file; `strict=True` rejects extra columns. |
+| D16 | Outliers | No capping/winsorizing of `annual_inc`, `revol_util` | Tree models split on thresholds, so extreme values don't distort them (supersedes the EDA note). Revisit only for a linear baseline or drift statistics. |
 
 ## Known corners cut
 - **No reject inference:** trained only on approved loans (selection bias).

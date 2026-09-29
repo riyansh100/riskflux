@@ -1,0 +1,13 @@
+# Pipeline parameters. DVC tracks this file (Step 5): changing a value re-runs only
+# the stages that depend on it. Evidence for every value: notebooks/01_eda.ipynb.
+
+population:
+  term_months: 36
+  application_type: Individual
+  issue_start: "2013-01"  # bureau wave-2 fields fully populated from 2012-09 (EDA §3)
+  issue_end: "2017-04"    # last cohort with >=98% of loans resolved (EDA §2)
+
+split:                    # out-of-time; contiguous; inclusive months (EDA §10)
+  train: {start: "2013-01", end: "2015-12"}
+  val:   {start: "2016-01", end: "2016-06"}
+  test:  {start: "2016-07", end: "2017-04"}

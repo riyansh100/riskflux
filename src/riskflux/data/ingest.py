@@ -19,9 +19,9 @@ import pyarrow as pa
 import pyarrow.csv as pv
 import pyarrow.parquet as pq
 
-RAW_ZIP = Path("data/raw/lending-club-20072020q1.zip")
+from riskflux.config import RAW_PARQUET, RAW_ZIP
+
 CSV_MEMBER = "Loan_status_2007-2020Q3.gzip"  # an UNCOMPRESSED csv despite the extension
-OUT_PATH = Path("data/interim/loans_raw.parquet")
 
 INDEX_COL = "_pandas_index"
 BLOCK_SIZE = 64 << 20  # 64 MB per streamed block
@@ -34,7 +34,7 @@ def read_header(zf: zipfile.ZipFile) -> list[str]:
     return names
 
 
-def ingest(raw_zip: Path = RAW_ZIP, out_path: Path = OUT_PATH) -> int:
+def ingest(raw_zip: Path = RAW_ZIP, out_path: Path = RAW_PARQUET) -> int:
     out_path.parent.mkdir(parents=True, exist_ok=True)
 
     with zipfile.ZipFile(raw_zip) as zf:
@@ -60,4 +60,4 @@ def ingest(raw_zip: Path = RAW_ZIP, out_path: Path = OUT_PATH) -> int:
 
 if __name__ == "__main__":
     n = ingest()
-    print(f"wrote {n:,} rows -> {OUT_PATH}")
+    print(f"wrote {n:,} rows -> {RAW_PARQUET}")

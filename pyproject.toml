@@ -6,7 +6,9 @@ readme = "README.md"
 requires-python = ">=3.11,<3.12"
 dependencies = [
     "pandas>=3.0.6",
+    "pandera>=0.33.1",
     "pyarrow>=25.0.1",
+    "pyyaml>=6.0.3",
 ]
 
 [build-system]
@@ -38,3 +40,6 @@ dev = [
 
 [tool.ruff.lint.per-file-ignores]
 "*.ipynb" = ["E501"]  # notebooks hold wide tables/markdown-ish strings; src/ keeps the 100-col limit
+
+[tool.ruff.format]
+exclude = ["*.ipynb"]  # notebooks are executed records; reformatting would desync code from outputs
