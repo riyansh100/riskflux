@@ -64,10 +64,17 @@ def test_stage_params_exist(stage):
         assert key in PARAMS, f"stage '{stage}' depends on unknown param '{key}'"
 
 
+def paths(entries: list) -> set[str]:
+    """dvc.yaml entries are either 'path' or {'path': {options}}."""
+    return {next(iter(e)) if isinstance(e, dict) else e for e in entries}
+
+
 def test_each_stage_consumes_the_previous_stage_output():
     stages = DVC["stages"]
-    produced = {out for spec in stages.values() for out in spec.get("outs", [])}
+    produced = set().union(*(paths(spec.get("outs", [])) for spec in stages.values()))
     for name, spec in stages.items():
-        generated = [d for d in spec["deps"] if d.startswith(("data/interim/", "data/processed/"))]
+        generated = [
+            d for d in spec["deps"] if d.startswith(("data/interim/", "data/processed/", "models/"))
+        ]
         for dep in generated:
             assert dep in produced, f"stage '{name}' reads {dep}, which no stage produces"

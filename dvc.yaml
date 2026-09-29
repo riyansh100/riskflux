@@ -47,3 +47,77 @@ stages:
     metrics:
       - reports/split_stats.json:
           cache: false  # small JSON: committed to git so it diffs in PRs
+
+  train:
+    cmd: python -m riskflux.models.train
+    deps:
+      - data/processed/train.parquet
+      - data/processed/val.parquet
+      - data/interim/loans_aux.parquet
+      - src/riskflux/models/train.py
+      - src/riskflux/models/calibration.py
+      - src/riskflux/models/io.py
+      - src/riskflux/models/metrics.py
+      - src/riskflux/economics/cost.py
+      - src/riskflux/features/engineer.py
+      - src/riskflux/features/pipeline.py
+      - src/riskflux/columns.py
+      - src/riskflux/config.py
+    params:
+      - population  # term_months: contractual interest in the cost function
+      - model
+      - cost
+    outs:
+      - models/model.joblib
+      - models/policy.json:
+          cache: false  # small: committed so threshold changes show up in git diffs
+    metrics:
+      - reports/train_metrics.json:
+          cache: false
+
+  evaluate:
+    cmd: python -m riskflux.models.evaluate
+    deps:
+      - models/model.joblib
+      - models/policy.json
+      - data/processed/test.parquet
+      - data/interim/loans_aux.parquet
+      - src/riskflux/models/evaluate.py
+      - src/riskflux/models/io.py
+      - src/riskflux/models/metrics.py
+      - src/riskflux/economics/cost.py
+      - src/riskflux/columns.py
+      - src/riskflux/config.py
+    params:
+      - cost  # threshold grid for the hindsight comparison
+    metrics:
+      - reports/test_metrics.json:
+          cache: false
+    plots:
+      - reports/calibration_test.csv:
+          x: mean_predicted
+          y: observed_rate
+          cache: false
+
+  ablation:
+    cmd: python -m riskflux.models.ablation
+    deps:
+      - data/processed/train.parquet
+      - data/processed/val.parquet
+      - data/processed/test.parquet
+      - data/interim/loans_aux.parquet
+      - src/riskflux/models/ablation.py
+      - src/riskflux/models/train.py
+      - src/riskflux/models/calibration.py
+      - src/riskflux/models/io.py
+      - src/riskflux/models/metrics.py
+      - src/riskflux/economics/cost.py
+      - src/riskflux/features/engineer.py
+      - src/riskflux/features/pipeline.py
+      - src/riskflux/columns.py
+      - src/riskflux/config.py
+    params:
+      - model
+    metrics:
+      - reports/ablation.json:
+          cache: false

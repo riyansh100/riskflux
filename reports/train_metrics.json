@@ -1,0 +1,31 @@
+{
+  "best_iteration": 912,
+  "lgd": 0.511223,
+  "haircut": 0.807113,
+  "threshold": 0.24,
+  "val_raw": {
+    "roc_auc": 0.70358,
+    "pr_auc": 0.30148,
+    "brier": 0.12374,
+    "log_loss": 0.40142,
+    "ece": 0.01437
+  },
+  "val_calibrated": {
+    "roc_auc": 0.70416,
+    "pr_auc": 0.29758,
+    "brier": 0.12337,
+    "log_loss": 0.40013,
+    "ece": 0.00111
+  },
+  "val_cost": {
+    "approve_all": 177895916,
+    "model": 165624866,
+    "savings_pct": 6.9,
+    "reject_rate": 0.1674
+  },
+  "val_cost_expected_value_rule": {
+    "model": 168465017,
+    "savings_pct": 5.3,
+    "reject_rate": 0.1743
+  }
+}

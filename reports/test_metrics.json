@@ -1,0 +1,45 @@
+{
+  "loans": 239705,
+  "default_rate": 0.15386,
+  "calibrated": {
+    "roc_auc": 0.68831,
+    "pr_auc": 0.27382,
+    "brier": 0.12242,
+    "log_loss": 0.39962,
+    "ece": 0.00497
+  },
+  "raw": {
+    "roc_auc": 0.68859,
+    "pr_auc": 0.27864,
+    "brier": 0.12266,
+    "log_loss": 0.40049,
+    "ece": 0.0162
+  },
+  "cost_approve_all": 242015294,
+  "policy_threshold": {
+    "threshold": 0.24,
+    "cost": 234933842,
+    "savings": 7081452,
+    "savings_pct": 2.93,
+    "reject_rate": 0.1391,
+    "defaults_caught": 0.2832,
+    "good_loans_rejected": 0.1128
+  },
+  "policy_expected_value": {
+    "cost": 233737663,
+    "savings": 8277631,
+    "savings_pct": 3.42,
+    "reject_rate": 0.1133,
+    "defaults_caught": 0.2053,
+    "good_loans_rejected": 0.0965
+  },
+  "hindsight_best_threshold": {
+    "threshold": 0.285,
+    "cost": 233418642,
+    "savings": 8596652,
+    "savings_pct": 3.55,
+    "reject_rate": 0.0912,
+    "defaults_caught": 0.2004,
+    "good_loans_rejected": 0.0714
+  }
+}

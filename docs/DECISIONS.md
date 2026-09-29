@@ -25,6 +25,21 @@ Evidence for data decisions: [`notebooks/01_eda.ipynb`](../notebooks/01_eda.ipyn
 | D17 | Feature pipeline | sklearn `Pipeline`: stateless `FeatureEngineer` (FICO midpoint, credit-history months, loan/income, revol_bal/income) → `CategoricalVocab` (category list learned on train). 62 model inputs. No imputation or scaling | Training and serving call the same fitted object; the model is appended to it in Step 6. LightGBM handles NaN and is scale-invariant, so imputers/scalers would add state without changing predictions. Unseen categories → NaN, never a crash or a re-numbered code. `issue_d` is used to compute history length but is not a feature. |
 | D18 | Serving contract | pydantic `LoanApplication` generated from `columns.py` + the same bounds as the pandera schema; `extra="forbid"` | One source of truth for batch and API rules. Clients sending `grade`, `int_rate`, etc. get a 422. Parity test proves identical features for the same loan via both paths (synthetic + 2,000 real loans). |
 | D19 | DVC pipeline | `dvc.yaml` stages ingest → clean → split. Each stage lists every riskflux module it imports as a dep (enforced by a test) plus only the params sections it reads. All outputs cached and pushed to DagsHub; split sizes/default rates tracked as DVC metrics | A missing code dep = stale outputs with no warning, so a test proves the dep lists are complete. Outputs are pushed so any commit can be restored with `dvc pull` in ~20 s instead of recomputed. Verified: repro is a no-op when nothing changed, a split-param edit invalidates only `split`, and ingest output is byte-identical across runs. |
+| D20 | Model + calibration | LightGBM (fixed baseline params, early stopping on val log-loss, 912 trees, `deterministic=true`) → isotonic calibration fitted on val, via a small custom wrapper | Deterministic training → byte-identical model on re-run, so DVC doesn't see phantom changes. Calibration cut test ECE from 0.016 to 0.005 with no AUC loss. Custom wrapper because sklearn's `CalibratedClassifierCV` validation can strip the pandas category dtype LightGBM needs. |
+| D21 | Decision policy | Global threshold **0.24** (cost-minimizing on val). LGD 0.511 and haircut 0.807 estimated dollar-weighted on train. Frozen in `models/policy.json` | Matches the EDA break-even estimate (≈23%). Val favoured the global threshold over the per-loan expected-value rule (6.9% vs 5.3% savings), so D5 stands. Open question below. |
+| D22 | Evaluation protocol | Test read once, by `evaluate` only. Baseline = approve-all (= LC's actual decisions). Also reports a hindsight-best threshold (never used for decisions) | Honest out-of-time estimate. The hindsight row shows how much the val-chosen threshold leaves on the table under drift. |
+
+## Results (test: 239,705 loans issued 2016-07 … 2017-04)
+| Metric | Value |
+|---|---|
+| ROC-AUC / PR-AUC | 0.688 / 0.274 |
+| Brier / ECE | 0.122 / 0.005 |
+| Cost vs approve-all | **−$7.08M (−2.9%)** at threshold 0.24, rejecting 13.9% of loans, catching 28% of defaults |
+| Hindsight-best threshold | 0.285 → −3.6% (val-chosen threshold slightly too strict under drift) |
+| Ablation (ROC-AUC) | LC `int_rate` alone 0.663 · our model 0.689 · our model + LC grade 0.697 |
+
+## Open questions
+- **Global threshold vs per-loan expected-value rule:** val favours the threshold (6.9% vs 5.3%), test favours the EV rule (3.4% vs 2.9%). Val is biased toward the threshold (it was tuned there; the EV rule has nothing to tune). Settle with a rolling-origin backtest over several periods, not by switching on test results.
 
 ## Known corners cut
 - **No reject inference:** trained only on approved loans (selection bias).
@@ -34,6 +49,9 @@ Evidence for data decisions: [`notebooks/01_eda.ipynb`](../notebooks/01_eda.ipyn
 - **Bureau fields assumed as-of application** (per LC data dictionary) — not verifiable from the data.
 - **Library versions aren't DVC deps:** `uv.lock` pins the environment per commit, but upgrading e.g. pandas won't trigger `dvc repro` on its own. Adding it as a dep would re-run everything on any package change.
 - **Coarse code deps:** stages depend on whole files (e.g. `schemas.py`, `config.py`), so editing an unrelated part of a shared file re-runs stages that didn't strictly need it. Correct but occasionally wasteful (~1 min).
+- **No hyperparameter tuning:** fixed baseline LightGBM settings. D3's expanding-window CV tuning is deferred; the infrastructure, not the last AUC point, is the goal.
+- **Val does triple duty:** early stopping, calibration and threshold choice all use the same val split, making val metrics optimistic (val savings 6.9% vs test 2.9%). A real team would use a separate calibration/policy period.
+- **Val-to-test gap from drift:** savings fall from 6.9% (val) to 2.9% (test); the threshold is fixed while the population shifts. This is what monitoring (Step 9) and retraining (Step 10) exist for.
 - **No feature store:** a shared Python module replaces Feast/Tecton.
 - **No shadow or canary rollout:** promotion goes straight to production.
 - **Limited fairness analysis:** no protected attributes in the data.

@@ -1,8 +1,9 @@
 """File paths and pipeline parameters (params.yaml), loaded and checked in one place."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 import yaml
 
@@ -14,6 +15,14 @@ CLEAN_PARQUET = Path("data/interim/loans_clean.parquet")
 AUX_PARQUET = Path("data/interim/loans_aux.parquet")
 SPLIT_DIR = Path("data/processed")
 SPLIT_STATS = Path("reports/split_stats.json")  # DVC metrics file, committed to git
+
+MODEL_DIR = Path("models")
+MODEL_PATH = MODEL_DIR / "model.joblib"  # fitted pipeline: features -> LightGBM -> calibration
+POLICY_PATH = MODEL_DIR / "policy.json"  # decision threshold + cost parameters
+TRAIN_METRICS = Path("reports/train_metrics.json")
+TEST_METRICS = Path("reports/test_metrics.json")
+CALIBRATION_CURVE = Path("reports/calibration_test.csv")
+ABLATION_METRICS = Path("reports/ablation.json")
 
 SPLIT_NAMES = ("train", "val", "test")
 
@@ -44,9 +53,23 @@ class PopulationParams:
 
 
 @dataclass(frozen=True)
+class ModelParams:
+    seed: int
+    early_stopping_rounds: int
+    lightgbm: dict = field(default_factory=dict)
+
+
+@dataclass(frozen=True)
+class CostParams:
+    threshold_grid: np.ndarray  # candidate PD cut-offs for the cost-optimal threshold
+
+
+@dataclass(frozen=True)
 class Params:
     population: PopulationParams
     splits: dict[str, Window]
+    model: ModelParams
+    cost: CostParams
 
 
 def load_params(path: Path = PARAMS_PATH) -> Params:
@@ -59,7 +82,14 @@ def load_params(path: Path = PARAMS_PATH) -> Params:
     )
     splits = {name: Window.from_months(**raw["split"][name]) for name in raw["split"]}
     check_splits(population.window, splits)
-    return Params(population=population, splits=splits)
+
+    grid = raw["cost"]["threshold_grid"]
+    cost = CostParams(
+        threshold_grid=np.round(np.arange(grid["start"], grid["stop"] + 1e-9, grid["step"]), 6)
+    )
+    return Params(
+        population=population, splits=splits, model=ModelParams(**raw["model"]), cost=cost
+    )
 
 
 def check_splits(population: Window, splits: dict[str, Window]) -> None:

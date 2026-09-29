@@ -1,0 +1,14 @@
+{
+  "lc_int_rate_only": {
+    "roc_auc": 0.6629,
+    "pr_auc": 0.24761
+  },
+  "our_model": {
+    "roc_auc": 0.68859,
+    "pr_auc": 0.27864
+  },
+  "our_model_plus_lc_grade": {
+    "roc_auc": 0.69707,
+    "pr_auc": 0.28658
+  }
+}

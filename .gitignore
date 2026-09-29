@@ -20,6 +20,8 @@ kaggle.json
 *.csv.gz
 *.zip
 *.parquet
+# ...except small committed reports (DVC metrics/plots with cache: false)
+!reports/*.csv
 
 # MLflow local artifacts
 mlruns/
