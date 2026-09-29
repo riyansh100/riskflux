@@ -22,6 +22,8 @@ Evidence for data decisions: [`notebooks/01_eda.ipynb`](../notebooks/01_eda.ipyn
 | D14 | Ingest | Stream CSV → parquet, every column as string | 1.77 GB CSV doesn't fit in pandas on 8 GB RAM; type inference from early rows is wrong for columns empty before 2012. Parsing is explicit in the clean stage. |
 | D15 | Clean stage | Stateless, strict parsing, two outputs: `loans_clean` (id, issue_d, y, 61 features) and `loans_aux` (LC decisions, outcomes, fairness columns). pandera contract validated before writing | Nothing learned from data here, so no test-set leakage. Unexpected source values fail loudly. Leakage columns physically can't reach the model file; `strict=True` rejects extra columns. |
 | D16 | Outliers | No capping/winsorizing of `annual_inc`, `revol_util` | Tree models split on thresholds, so extreme values don't distort them (supersedes the EDA note). Revisit only for a linear baseline or drift statistics. |
+| D17 | Feature pipeline | sklearn `Pipeline`: stateless `FeatureEngineer` (FICO midpoint, credit-history months, loan/income, revol_bal/income) → `CategoricalVocab` (category list learned on train). 62 model inputs. No imputation or scaling | Training and serving call the same fitted object; the model is appended to it in Step 6. LightGBM handles NaN and is scale-invariant, so imputers/scalers would add state without changing predictions. Unseen categories → NaN, never a crash or a re-numbered code. `issue_d` is used to compute history length but is not a feature. |
+| D18 | Serving contract | pydantic `LoanApplication` generated from `columns.py` + the same bounds as the pandera schema; `extra="forbid"` | One source of truth for batch and API rules. Clients sending `grade`, `int_rate`, etc. get a 422. Parity test proves identical features for the same loan via both paths (synthetic + 2,000 real loans). |
 
 ## Known corners cut
 - **No reject inference:** trained only on approved loans (selection bias).
@@ -32,3 +34,5 @@ Evidence for data decisions: [`notebooks/01_eda.ipynb`](../notebooks/01_eda.ipyn
 - **No feature store:** a shared Python module replaces Feast/Tecton.
 - **No shadow or canary rollout:** promotion goes straight to production.
 - **Limited fairness analysis:** no protected attributes in the data.
+- **Model only knows LC's approval box:** training data has FICO ≥ 660, credit history ≥ 36 months, loan/income ≤ 0.5. Applications outside it are extrapolation — to be flagged by the API (Step 8).
+- **Pickled pipeline is tied to the `riskflux` code version:** the model file references `riskflux.features` classes, so code and model must ship together (D10 bakes both into one image).

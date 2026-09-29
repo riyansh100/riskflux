@@ -8,7 +8,9 @@ dependencies = [
     "pandas>=3.0.6",
     "pandera>=0.33.1",
     "pyarrow>=25.0.1",
+    "pydantic>=2.13.5",
     "pyyaml>=6.0.3",
+    "scikit-learn>=1.9.1",
 ]
 
 [build-system]

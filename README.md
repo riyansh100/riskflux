@@ -8,7 +8,7 @@ registry with promotion, a containerized inference API, drift monitoring, automa
 retraining, and a model card.
 
 ## Status
-🚧 Step 3 done — tested clean / validate / split stages
+🚧 Step 4 done — shared feature pipeline + train/serve parity test
 
 ## Stack
 Python 3.11 · uv · DVC · pandera · LightGBM · MLflow · FastAPI · Docker · Evidently · GitHub Actions · GCP Cloud Run
