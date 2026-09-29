@@ -24,6 +24,11 @@ TEST_METRICS = Path("reports/test_metrics.json")
 CALIBRATION_CURVE = Path("reports/calibration_test.csv")
 ABLATION_METRICS = Path("reports/ablation.json")
 
+# MLflow (tracking server comes from the MLFLOW_TRACKING_URI env var; see .env.example)
+EXPERIMENT_NAME = "riskflux"
+REGISTERED_MODEL = "riskflux-pd"
+CHALLENGER, CHAMPION = "challenger", "champion"  # registry aliases
+
 SPLIT_NAMES = ("train", "val", "test")
 
 
@@ -65,11 +70,19 @@ class CostParams:
 
 
 @dataclass(frozen=True)
+class PromotionParams:
+    min_cost_improvement: float
+    max_auc_drop: float
+    max_ece: float
+
+
+@dataclass(frozen=True)
 class Params:
     population: PopulationParams
     splits: dict[str, Window]
     model: ModelParams
     cost: CostParams
+    promotion: PromotionParams
 
 
 def load_params(path: Path = PARAMS_PATH) -> Params:
@@ -88,7 +101,11 @@ def load_params(path: Path = PARAMS_PATH) -> Params:
         threshold_grid=np.round(np.arange(grid["start"], grid["stop"] + 1e-9, grid["step"]), 6)
     )
     return Params(
-        population=population, splits=splits, model=ModelParams(**raw["model"]), cost=cost
+        population=population,
+        splits=splits,
+        model=ModelParams(**raw["model"]),
+        cost=cost,
+        promotion=PromotionParams(**raw["promotion"]),
     )
 
 

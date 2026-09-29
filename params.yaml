@@ -30,3 +30,8 @@ model:
 
 cost:
   threshold_grid: {start: 0.01, stop: 0.99, step: 0.005}
+
+promotion:                     # champion/challenger rules (registry/promote.py)
+  min_cost_improvement: 0.001  # challenger must cut dollar cost by >= 0.1% vs champion
+  max_auc_drop: 0.005          # ...without losing more than 0.005 ROC-AUC
+  max_ece: 0.02                # ...and must stay calibrated (cost math depends on it)

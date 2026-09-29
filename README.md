@@ -8,7 +8,7 @@ registry with promotion, a containerized inference API, drift monitoring, automa
 retraining, and a model card.
 
 ## Status
-🚧 Step 6 done — calibrated LightGBM with a cost-optimal decision policy
+🚧 Step 7 done — MLflow tracking + model registry (champion/challenger) on DagsHub
 
 ## Stack
 Python 3.11 · uv · DVC · pandera · LightGBM · MLflow · FastAPI · Docker · Evidently · GitHub Actions · GCP Cloud Run
@@ -45,6 +45,15 @@ Out-of-time test set: 239,705 loans issued 2016-07 … 2017-04 (after everything
 | Loss avoided vs approving every loan | **$7.08M (2.9%)**, rejecting 13.9% of applications |
 
 Details, caveats and ablations: [docs/DECISIONS.md](docs/DECISIONS.md).
+
+## Experiment tracking & registry (MLflow on DagsHub)
+```bash
+cp .env.example .env                                              # then add your DagsHub token
+uv run --env-file .env python -m riskflux.registry.log_run        # log run + register as @challenger
+uv run --env-file .env python -m riskflux.registry.promote        # promote to @champion if it's cheaper
+```
+`log_run` refuses to log if `dvc status` isn't clean or there are uncommitted changes, so every
+registered version maps to one git commit and exact data hashes.
 
 ## Data
 - Source: [Lending Club 2007–2020Q3 on Kaggle](https://www.kaggle.com/datasets/ethon0426/lending-club-20072020q1)

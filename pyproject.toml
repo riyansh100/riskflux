@@ -36,6 +36,7 @@ dev = [
     "jupyterlab>=4.6.4",
     "kaggle>=2.2.4",
     "matplotlib>=3.11.2",
+    "mlflow-skinny>=3.16.1",
     "nbconvert>=7.17.1",
     "openpyxl>=3.1.5",
     "pytest>=9.1.1",
