@@ -24,6 +24,7 @@ Evidence for data decisions: [`notebooks/01_eda.ipynb`](../notebooks/01_eda.ipyn
 | D16 | Outliers | No capping/winsorizing of `annual_inc`, `revol_util` | Tree models split on thresholds, so extreme values don't distort them (supersedes the EDA note). Revisit only for a linear baseline or drift statistics. |
 | D17 | Feature pipeline | sklearn `Pipeline`: stateless `FeatureEngineer` (FICO midpoint, credit-history months, loan/income, revol_bal/income) → `CategoricalVocab` (category list learned on train). 62 model inputs. No imputation or scaling | Training and serving call the same fitted object; the model is appended to it in Step 6. LightGBM handles NaN and is scale-invariant, so imputers/scalers would add state without changing predictions. Unseen categories → NaN, never a crash or a re-numbered code. `issue_d` is used to compute history length but is not a feature. |
 | D18 | Serving contract | pydantic `LoanApplication` generated from `columns.py` + the same bounds as the pandera schema; `extra="forbid"` | One source of truth for batch and API rules. Clients sending `grade`, `int_rate`, etc. get a 422. Parity test proves identical features for the same loan via both paths (synthetic + 2,000 real loans). |
+| D19 | DVC pipeline | `dvc.yaml` stages ingest → clean → split. Each stage lists every riskflux module it imports as a dep (enforced by a test) plus only the params sections it reads. All outputs cached and pushed to DagsHub; split sizes/default rates tracked as DVC metrics | A missing code dep = stale outputs with no warning, so a test proves the dep lists are complete. Outputs are pushed so any commit can be restored with `dvc pull` in ~20 s instead of recomputed. Verified: repro is a no-op when nothing changed, a split-param edit invalidates only `split`, and ingest output is byte-identical across runs. |
 
 ## Known corners cut
 - **No reject inference:** trained only on approved loans (selection bias).
@@ -31,6 +32,8 @@ Evidence for data decisions: [`notebooks/01_eda.ipynb`](../notebooks/01_eda.ipyn
 - **Simplified economics:** fixed LGD; ignores interest collected before default, cost of funds, servicing fees, capital charges.
 - **Bureau wave 3 unused:** 14 informative fields dropped because they only exist from 2015-12.
 - **Bureau fields assumed as-of application** (per LC data dictionary) — not verifiable from the data.
+- **Library versions aren't DVC deps:** `uv.lock` pins the environment per commit, but upgrading e.g. pandas won't trigger `dvc repro` on its own. Adding it as a dep would re-run everything on any package change.
+- **Coarse code deps:** stages depend on whole files (e.g. `schemas.py`, `config.py`), so editing an unrelated part of a shared file re-runs stages that didn't strictly need it. Correct but occasionally wasteful (~1 min).
 - **No feature store:** a shared Python module replaces Feast/Tecton.
 - **No shadow or canary rollout:** promotion goes straight to production.
 - **Limited fairness analysis:** no protected attributes in the data.

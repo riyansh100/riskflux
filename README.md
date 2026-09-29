@@ -8,7 +8,7 @@ registry with promotion, a containerized inference API, drift monitoring, automa
 retraining, and a model card.
 
 ## Status
-🚧 Step 4 done — shared feature pipeline + train/serve parity test
+🚧 Step 5 done — full data pipeline reproducible with `dvc repro` / `dvc pull`
 
 ## Stack
 Python 3.11 · uv · DVC · pandera · LightGBM · MLflow · FastAPI · Docker · Evidently · GitHub Actions · GCP Cloud Run
@@ -24,14 +24,16 @@ uv run dvc remote modify origin --local access_key_id <DAGSHUB_TOKEN>
 uv run dvc remote modify origin --local secret_access_key <DAGSHUB_TOKEN>
 ```
 
-## Pipeline (run from repo root)
+## Pipeline
+Defined in `dvc.yaml` (ingest → clean → split); parameters in `params.yaml`.
 ```bash
-uv run python -m riskflux.data.ingest   # raw zip -> data/interim/loans_raw.parquet (all strings)
-uv run python -m riskflux.data.clean    # -> loans_clean.parquet + loans_aux.parquet (validated)
-uv run python -m riskflux.data.split    # -> data/processed/{train,val,test}.parquet
-uv run pytest                           # unit tests (synthetic data, no download needed)
+uv run dvc pull         # get every stage output for the current commit (no recompute)
+uv run dvc repro        # re-run only the stages whose code, data, or params changed
+uv run dvc dag          # show the stage graph
+uv run dvc metrics diff # compare split sizes / default rates with the last commit
+uv run pytest           # unit tests (synthetic data, no download needed)
 ```
-Parameters (population window, split cutoffs) live in `params.yaml`. Step 5 wires these stages into `dvc repro`.
+Stages can also run individually: `uv run python -m riskflux.data.{ingest,clean,split}`.
 
 ## Data
 - Source: [Lending Club 2007–2020Q3 on Kaggle](https://www.kaggle.com/datasets/ethon0426/lending-club-20072020q1)

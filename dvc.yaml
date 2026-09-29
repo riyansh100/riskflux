@@ -1,0 +1,49 @@
+# Pipeline DAG: raw zip -> ingest -> clean -> split.
+#
+# `dvc repro` re-runs a stage only if one of its deps, params, or outs changed.
+# Every riskflux module a stage imports is listed as a dep (enforced by
+# tests/unit/test_dvc_pipeline.py), so a code change can't leave a stale output behind.
+# Commands use plain `python`: run via `uv run dvc repro` so it resolves to the project venv.
+
+stages:
+  ingest:
+    cmd: python -m riskflux.data.ingest
+    deps:
+      - data/raw/lending-club-20072020q1.zip
+      - src/riskflux/data/ingest.py
+      - src/riskflux/config.py
+    outs:
+      - data/interim/loans_raw.parquet
+
+  clean:
+    cmd: python -m riskflux.data.clean
+    deps:
+      - data/interim/loans_raw.parquet
+      - src/riskflux/data/clean.py
+      - src/riskflux/columns.py
+      - src/riskflux/config.py
+      - src/riskflux/schemas.py
+    params:
+      - population
+    outs:
+      - data/interim/loans_clean.parquet
+      - data/interim/loans_aux.parquet
+
+  split:
+    cmd: python -m riskflux.data.split
+    deps:
+      - data/interim/loans_clean.parquet
+      - src/riskflux/data/split.py
+      - src/riskflux/columns.py
+      - src/riskflux/config.py
+      - src/riskflux/schemas.py
+    params:
+      - population  # split windows are validated against the population window
+      - split
+    outs:
+      - data/processed/train.parquet
+      - data/processed/val.parquet
+      - data/processed/test.parquet
+    metrics:
+      - reports/split_stats.json:
+          cache: false  # small JSON: committed to git so it diffs in PRs

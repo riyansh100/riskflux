@@ -1,0 +1,118 @@
+schema: '2.0'
+stages:
+  ingest:
+    cmd: python -m riskflux.data.ingest
+    deps:
+    - path: data/raw/lending-club-20072020q1.zip
+      hash: md5
+      md5: d9ba1effd712733806c30c0561a3c3fc
+      size: 505408012
+    - path: src/riskflux/config.py
+      hash: md5
+      md5: 9718235e1888217cb2ad386837e9e1f8
+      size: 2668
+    - path: src/riskflux/data/ingest.py
+      hash: md5
+      md5: a5893d15ac69a5f5209d0263e9672c77
+      size: 2238
+    outs:
+    - path: data/interim/loans_raw.parquet
+      hash: md5
+      md5: 3616a5307b50af5c5815b8e35131d6af
+      size: 369781439
+  clean:
+    cmd: python -m riskflux.data.clean
+    deps:
+    - path: data/interim/loans_raw.parquet
+      hash: md5
+      md5: 3616a5307b50af5c5815b8e35131d6af
+      size: 369781439
+    - path: src/riskflux/columns.py
+      hash: md5
+      md5: 1c0cf9c0f6263784a62d3177626138a8
+      size: 3647
+    - path: src/riskflux/config.py
+      hash: md5
+      md5: 9718235e1888217cb2ad386837e9e1f8
+      size: 2668
+    - path: src/riskflux/data/clean.py
+      hash: md5
+      md5: a9a2174fdc52fa8f0be6d4881566088a
+      size: 4896
+    - path: src/riskflux/schemas.py
+      hash: md5
+      md5: 5cc73beff465e9aea2f788b082b44568
+      size: 5801
+    params:
+      params.yaml:
+        population:
+          term_months: 36
+          application_type: Individual
+          issue_start: 2013-01
+          issue_end: 2017-04
+    outs:
+    - path: data/interim/loans_aux.parquet
+      hash: md5
+      md5: 5d2ccea0e32a3451dcb717382c4dd0e4
+      size: 23460152
+    - path: data/interim/loans_clean.parquet
+      hash: md5
+      md5: ca8d4e84488e1307d5e6f3d0cfbca135
+      size: 66543670
+  split:
+    cmd: python -m riskflux.data.split
+    deps:
+    - path: data/interim/loans_clean.parquet
+      hash: md5
+      md5: ca8d4e84488e1307d5e6f3d0cfbca135
+      size: 66543670
+    - path: src/riskflux/columns.py
+      hash: md5
+      md5: 1c0cf9c0f6263784a62d3177626138a8
+      size: 3647
+    - path: src/riskflux/config.py
+      hash: md5
+      md5: 9718235e1888217cb2ad386837e9e1f8
+      size: 2668
+    - path: src/riskflux/data/split.py
+      hash: md5
+      md5: 0981c70aa63dcfd3316ba296dc26066f
+      size: 1936
+    - path: src/riskflux/schemas.py
+      hash: md5
+      md5: 5cc73beff465e9aea2f788b082b44568
+      size: 5801
+    params:
+      params.yaml:
+        population:
+          term_months: 36
+          application_type: Individual
+          issue_start: 2013-01
+          issue_end: 2017-04
+        split:
+          train:
+            start: 2013-01
+            end: 2015-12
+          val:
+            start: 2016-01
+            end: 2016-06
+          test:
+            start: 2016-07
+            end: 2017-04
+    outs:
+    - path: data/processed/test.parquet
+      hash: md5
+      md5: 96cbff12dd6ceffcb9e6087b83818dd9
+      size: 17628209
+    - path: data/processed/train.parquet
+      hash: md5
+      md5: 3b385469e5d900bab4fc864a4b60a989
+      size: 37627652
+    - path: data/processed/val.parquet
+      hash: md5
+      md5: 8a85f4375dcef64712ef283bc24583fb
+      size: 12804126
+    - path: reports/split_stats.json
+      hash: md5
+      md5: 1ee9ce1ff8c7002fb0ba1144aa17c690
+      size: 201

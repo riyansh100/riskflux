@@ -1,0 +1,14 @@
+{
+  "train": {
+    "loans": 545926,
+    "default_rate": 0.14073
+  },
+  "val": {
+    "loans": 168258,
+    "default_rate": 0.15815
+  },
+  "test": {
+    "loans": 239705,
+    "default_rate": 0.15386
+  }
+}

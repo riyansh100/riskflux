@@ -13,6 +13,7 @@ RAW_PARQUET = Path("data/interim/loans_raw.parquet")
 CLEAN_PARQUET = Path("data/interim/loans_clean.parquet")
 AUX_PARQUET = Path("data/interim/loans_aux.parquet")
 SPLIT_DIR = Path("data/processed")
+SPLIT_STATS = Path("reports/split_stats.json")  # DVC metrics file, committed to git
 
 SPLIT_NAMES = ("train", "val", "test")
 

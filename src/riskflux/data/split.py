@@ -7,10 +7,12 @@ would let the model see the future and hide the drift in the data.
 Run: uv run python -m riskflux.data.split
 """
 
+import json
+
 import pandas as pd
 
 from riskflux import columns as C
-from riskflux.config import CLEAN_PARQUET, SPLIT_DIR, Window, load_params
+from riskflux.config import CLEAN_PARQUET, SPLIT_DIR, SPLIT_STATS, Window, load_params
 from riskflux.schemas import CLEAN_SCHEMA
 
 
@@ -32,14 +34,20 @@ def main() -> None:
     parts = split(loans, params.splits)
 
     SPLIT_DIR.mkdir(parents=True, exist_ok=True)
+    stats = {}
     for name, part in parts.items():
         CLEAN_SCHEMA.validate(part)
         part.to_parquet(SPLIT_DIR / f"{name}.parquet", index=False)
+        stats[name] = {"loans": len(part), "default_rate": round(part[C.TARGET].mean(), 5)}
         dates = part[C.ISSUE_DATE]
         print(
             f"{name:5s} {dates.min():%Y-%m} .. {dates.max():%Y-%m}  "
             f"{len(part):>7,} loans  default rate {part[C.TARGET].mean():.2%}"
         )
+
+    # Tracked as DVC metrics: `dvc metrics diff` shows how the data changed between commits.
+    SPLIT_STATS.parent.mkdir(parents=True, exist_ok=True)
+    SPLIT_STATS.write_text(json.dumps(stats, indent=2) + "\n")
 
 
 if __name__ == "__main__":
