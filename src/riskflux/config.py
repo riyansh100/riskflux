@@ -24,6 +24,13 @@ TEST_METRICS = Path("reports/test_metrics.json")
 CALIBRATION_CURVE = Path("reports/calibration_test.csv")
 ABLATION_METRICS = Path("reports/ablation.json")
 
+# Monitoring (Step 9): replayed traffic, the API's prediction log, drift outputs
+REPLAY_PARQUET = Path("data/monitoring/replay_loans.parquet")
+PREDICTION_LOG = Path("data/monitoring/predictions.jsonl")
+DRIFT_SUMMARY = Path("reports/drift/drift_summary.json")
+DRIFT_REPORT_HTML = Path("reports/drift/latest_month.html")
+DRIFT_TIMELINE_PNG = Path("reports/drift/drift_timeline.png")
+
 # MLflow (tracking server comes from the MLFLOW_TRACKING_URI env var; see .env.example)
 EXPERIMENT_NAME = "riskflux"
 REGISTERED_MODEL = "riskflux-pd"
@@ -77,12 +84,25 @@ class PromotionParams:
 
 
 @dataclass(frozen=True)
+class MonitoringParams:
+    replay: Window
+    sample_per_month: int
+    seed: int
+    reference_sample: int
+    psi_threshold: float
+    drifted_share_alert: float
+    prediction_psi_alert: float
+    missing_share_alert: float
+
+
+@dataclass(frozen=True)
 class Params:
     population: PopulationParams
     splits: dict[str, Window]
     model: ModelParams
     cost: CostParams
     promotion: PromotionParams
+    monitoring: MonitoringParams
 
 
 def load_params(path: Path = PARAMS_PATH) -> Params:
@@ -106,7 +126,15 @@ def load_params(path: Path = PARAMS_PATH) -> Params:
         model=ModelParams(**raw["model"]),
         cost=cost,
         promotion=PromotionParams(**raw["promotion"]),
+        monitoring=_monitoring(raw["monitoring"], population.window),
     )
+
+
+def _monitoring(raw: dict, population: Window) -> MonitoringParams:
+    replay = Window.from_months(**raw["replay"])
+    if replay.start <= population.end:
+        raise ValueError("replay window must start after the modeling window ends")
+    return MonitoringParams(replay=replay, **{k: v for k, v in raw.items() if k != "replay"})
 
 
 def check_splits(population: Window, splits: dict[str, Window]) -> None:

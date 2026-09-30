@@ -9,8 +9,8 @@ stages:
       size: 505408012
     - path: src/riskflux/config.py
       hash: md5
-      md5: d7d16fcac16628cdae74596df4c02cc0
-      size: 4099
+      md5: e895a36d8cbee9ddabe04b415f1d2fcf
+      size: 5174
     - path: src/riskflux/data/ingest.py
       hash: md5
       md5: a5893d15ac69a5f5209d0263e9672c77
@@ -33,16 +33,16 @@ stages:
       size: 3647
     - path: src/riskflux/config.py
       hash: md5
-      md5: d7d16fcac16628cdae74596df4c02cc0
-      size: 4099
+      md5: e895a36d8cbee9ddabe04b415f1d2fcf
+      size: 5174
     - path: src/riskflux/data/clean.py
       hash: md5
-      md5: a9a2174fdc52fa8f0be6d4881566088a
-      size: 4896
+      md5: 9eed40564cf8f809291046cd9cca6dc4
+      size: 5746
     - path: src/riskflux/schemas.py
       hash: md5
-      md5: 5cc73beff465e9aea2f788b082b44568
-      size: 5801
+      md5: 6bd319fcc8748a648ad422bcfe9e517b
+      size: 6436
     params:
       params.yaml:
         population:
@@ -72,16 +72,16 @@ stages:
       size: 3647
     - path: src/riskflux/config.py
       hash: md5
-      md5: d7d16fcac16628cdae74596df4c02cc0
-      size: 4099
+      md5: e895a36d8cbee9ddabe04b415f1d2fcf
+      size: 5174
     - path: src/riskflux/data/split.py
       hash: md5
       md5: 0981c70aa63dcfd3316ba296dc26066f
       size: 1936
     - path: src/riskflux/schemas.py
       hash: md5
-      md5: 5cc73beff465e9aea2f788b082b44568
-      size: 5801
+      md5: 6bd319fcc8748a648ad422bcfe9e517b
+      size: 6436
     params:
       params.yaml:
         population:
@@ -137,8 +137,8 @@ stages:
       size: 3647
     - path: src/riskflux/config.py
       hash: md5
-      md5: d7d16fcac16628cdae74596df4c02cc0
-      size: 4099
+      md5: e895a36d8cbee9ddabe04b415f1d2fcf
+      size: 5174
     - path: src/riskflux/economics/cost.py
       hash: md5
       md5: c70717c937e950b85875510a4f2dd60d
@@ -232,8 +232,8 @@ stages:
       size: 3647
     - path: src/riskflux/config.py
       hash: md5
-      md5: d7d16fcac16628cdae74596df4c02cc0
-      size: 4099
+      md5: e895a36d8cbee9ddabe04b415f1d2fcf
+      size: 5174
     - path: src/riskflux/economics/cost.py
       hash: md5
       md5: c70717c937e950b85875510a4f2dd60d
@@ -291,8 +291,8 @@ stages:
       size: 3647
     - path: src/riskflux/config.py
       hash: md5
-      md5: d7d16fcac16628cdae74596df4c02cc0
-      size: 4099
+      md5: e895a36d8cbee9ddabe04b415f1d2fcf
+      size: 5174
     - path: src/riskflux/economics/cost.py
       hash: md5
       md5: c70717c937e950b85875510a4f2dd60d
@@ -347,3 +347,53 @@ stages:
       hash: md5
       md5: 405851224f41fa0b3474f71f4a4cf470
       size: 227
+  replay_data:
+    cmd: python -m riskflux.data.replay
+    deps:
+    - path: data/interim/loans_raw.parquet
+      hash: md5
+      md5: 3616a5307b50af5c5815b8e35131d6af
+      size: 369781439
+    - path: src/riskflux/columns.py
+      hash: md5
+      md5: 1c0cf9c0f6263784a62d3177626138a8
+      size: 3647
+    - path: src/riskflux/config.py
+      hash: md5
+      md5: e895a36d8cbee9ddabe04b415f1d2fcf
+      size: 5174
+    - path: src/riskflux/data/clean.py
+      hash: md5
+      md5: 9eed40564cf8f809291046cd9cca6dc4
+      size: 5746
+    - path: src/riskflux/data/replay.py
+      hash: md5
+      md5: 53eb1a743146286a56bc64e97887de6a
+      size: 1928
+    - path: src/riskflux/schemas.py
+      hash: md5
+      md5: 6bd319fcc8748a648ad422bcfe9e517b
+      size: 6436
+    params:
+      params.yaml:
+        monitoring:
+          replay:
+            start: 2017-05
+            end: 2020-09
+          sample_per_month: 2000
+          seed: 42
+          reference_sample: 20000
+          psi_threshold: 0.1
+          drifted_share_alert: 0.3
+          prediction_psi_alert: 0.2
+          missing_share_alert: 0.1
+        population:
+          term_months: 36
+          application_type: Individual
+          issue_start: 2013-01
+          issue_end: 2017-04
+    outs:
+    - path: data/monitoring/replay_loans.parquet
+      hash: md5
+      md5: e16bded5965d7ac3f176d60a43ff491c
+      size: 6541581

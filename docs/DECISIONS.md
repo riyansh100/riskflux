@@ -33,6 +33,8 @@ Evidence for data decisions: [`notebooks/01_eda.ipynb`](../notebooks/01_eda.ipyn
 | D25 | API design | FastAPI: `/health` (liveness), `/ready` (readiness, 503 until the model loads), `/metadata`, `/predict`, `/predict/batch` (≤1,000). Request = `LoanApplication` (D18); response = calibrated PD, decision, expected loss, top-3 risk factors, policy flags, model version | Separate liveness and readiness so a missing model stops traffic without a restart loop. The service runs the exact training pipeline object, and an HTTP-level test proves identical scores to the batch path on 500 real loans. |
 | D26 | Decisions + reason codes | `approve`/`reject` at the policy threshold; **`refer`** (human review) when the applicant is outside LC's approval box (FICO < 660, credit history < 36 months, loan/income > 0.5). Reason codes = top positive TreeSHAP contributions from LightGBM's built-in `pred_contrib`, with plain-English labels; missing inputs are labelled "(not provided)" | The model never saw applicants outside the box, so it shouldn't auto-decide them. TreeSHAP gives adverse-action reasons without the `shap` dependency; isotonic calibration is monotone, so the raw-score ranking stays valid. |
 | D27 | Container | `fetch_model` pulls `@champion` from MLflow outside the build and verifies its md5 against the registry lineage tag; multi-stage uv Dockerfile (deps layer cached on `uv.lock`), slim runtime + `libgomp1`, non-root user, allowlist `.dockerignore`, one uvicorn worker per container | No registry credentials in the image; the image provably carries the registered model. The allowlist keeps `.env`, data and git history out of the build context by construction. Cloud Run scales by containers, so one worker each keeps memory predictable. |
+| D28 | Simulated production traffic | `replay_data` DVC stage: 36-month individual loans issued 2017-05 … 2020-09 (after the modeling window), parsed by the same `clean()` with in-flight loans kept (label `<NA>`), 2,000 per month with a fixed seed (81,718 loans). Replayed in issue-date order through the running Docker image; the API's own prediction log is the monitoring input | Monitoring reads what the service actually logged, as in production. Grouping by application month (event time), not log time, keeps a fast replay equivalent to 41 real months. |
+| D29 | Drift detection | Evidently, **PSI** per model input *after* feature engineering + PSI of predicted PD, vs a 20k-loan sample of the test period scored by the champion; plus missing-rate change (PSI ignores missing values) and decision rates. Monthly alert if ≥ 30% of inputs drift, prediction PSI ≥ 0.2, or any missing rate moves ≥ 10 points | PSI is the credit-risk industry standard. Engineered features = exactly what the model sees, and raw dates can't fake drift. The reference is where performance was actually measured. |
 
 ## Results (test: 239,705 loans issued 2016-07 … 2017-04)
 | Metric | Value |
@@ -42,6 +44,11 @@ Evidence for data decisions: [`notebooks/01_eda.ipynb`](../notebooks/01_eda.ipyn
 | Cost vs approve-all | **−$7.08M (−2.9%)** at threshold 0.24, rejecting 13.9% of loans, catching 28% of defaults |
 | Hindsight-best threshold | 0.285 → −3.6% (val-chosen threshold slightly too strict under drift) |
 | Ablation (ROC-AUC) | LC `int_rate` alone 0.663 · our model 0.689 · our model + LC grade 0.697 |
+
+## Drift findings (replay 2017-05 … 2020-09, `reports/drift/`)
+- **2017-05 → 2018-01: stable.** Prediction PSI < 0.08, no alerts.
+- **2018 onward: upstream data change.** `mths_since_last_record` PSI ≈ 0.9, `tax_liens` 0.25, `pub_rec` ~0.2, and public-record missing rates up 10+ points. This matches the credit bureaus removing tax liens and civil judgments from reports (NCAP, 2017-07 … 2018-04): a change in the data source, not in borrowers.
+- **2020-04: COVID.** Prediction PSI jumps 0.04 → 0.42; the policy's reject rate falls from ~10% to 3% as Lending Club tightened credit (only much safer applicants were approved). Refer rate: 1.4% of replayed loans fell outside the training approval box, versus 0% in the test period.
 
 ## Open questions
 - **Global threshold vs per-loan expected-value rule:** val favours the threshold (6.9% vs 5.3%), test favours the EV rule (3.4% vs 2.9%). Val is biased toward the threshold (it was tuned there; the EV rule has nothing to tune). Settle with a rolling-origin backtest over several periods, not by switching on test results.
@@ -65,6 +72,10 @@ Evidence for data decisions: [`notebooks/01_eda.ipynb`](../notebooks/01_eda.ipyn
 - **Policy box is hard-coded** from the training data's observed limits, not learned or versioned with the model.
 - **Base images pinned by tag, not digest:** `python:3.11-slim-bookworm` can change underneath us; pinning the digest would make builds fully reproducible.
 - **Expected loss uses the requested amount** as funded amount (unknown before funding).
+- **Drift thresholds are heuristics** (PSI 0.1/0.2, 30% of features, 10-point missing change), not tuned to business impact. With 62 inputs, a few drift by chance each month; the share threshold absorbs that.
+- **Drift ≠ performance loss:** PSI says inputs changed, not that decisions got worse. Realized performance needs labels, which arrive months later (Step 10 simulates their arrival).
+- **Prediction log is a local JSONL file** (via a Docker volume). On Cloud Run the same records go to Cloud Logging; a real setup would sink them to a warehouse (e.g. BigQuery) for the monitoring job.
+- **Monthly batch monitoring only:** no real-time alerting or dashboards.
 - **No feature store:** a shared Python module replaces Feast/Tecton.
 - **No shadow or canary rollout:** promotion goes straight to production.
 - **Limited fairness analysis:** no protected attributes in the data.

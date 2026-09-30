@@ -63,28 +63,44 @@ def parse_emp_length(raw: pd.Series) -> pd.Series:
     return parsed
 
 
-def population_mask(raw: pd.DataFrame, issue: pd.Series, pop: PopulationParams) -> pd.Series:
-    return (
+def population_mask(
+    raw: pd.DataFrame, issue: pd.Series, pop: PopulationParams, require_outcome: bool = True
+) -> pd.Series:
+    mask = (
         (raw[C.TERM].str.strip() == f"{pop.term_months} months")
         & (raw[C.APPLICATION_TYPE] == pop.application_type)
         & pop.window.contains(issue)
-        & raw[C.LOAN_STATUS].isin(C.GOOD_STATUSES | C.BAD_STATUSES)
     )
+    if require_outcome:
+        mask &= raw[C.LOAN_STATUS].isin(C.GOOD_STATUSES | C.BAD_STATUSES)
+    return mask
 
 
-def clean(raw: pd.DataFrame, pop: PopulationParams) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """Returns (clean, aux) for the rows of `raw` that belong to the population."""
+def clean(
+    raw: pd.DataFrame, pop: PopulationParams, require_outcome: bool = True
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Returns (clean, aux) for the rows of `raw` that belong to the population.
+
+    require_outcome=False keeps loans still in flight (for replayed production traffic):
+    their label is missing (<NA>) instead of the row being dropped."""
     # Junk rows: section headers left over from LC's concatenated files.
     raw = raw[raw[C.ID].str.fullmatch(r"\d+", na=False)]
 
     issue = parse_month(raw[C.ISSUE_DATE])
-    keep = population_mask(raw, issue, pop)
+    keep = population_mask(raw, issue, pop, require_outcome)
     raw, issue = raw[keep], issue[keep]
 
     out = pd.DataFrame(index=raw.index)
     out[C.ID] = raw[C.ID].astype("int64")
     out[C.ISSUE_DATE] = issue
-    out[C.TARGET] = raw[C.LOAN_STATUS].isin(C.BAD_STATUSES).astype("int8")
+    status = raw[C.LOAN_STATUS]
+    if require_outcome:
+        out[C.TARGET] = status.isin(C.BAD_STATUSES).astype("int8")
+    else:
+        label = pd.Series(pd.NA, index=raw.index, dtype="Int8")
+        label[status.isin(C.BAD_STATUSES)] = 1
+        label[status.isin(C.GOOD_STATUSES)] = 0
+        out[C.TARGET] = label
 
     for col in C.NUMERIC_FEATURES:
         out[col] = parse_emp_length(raw[col]) if col == "emp_length" else parse_numeric(raw[col])
@@ -106,13 +122,22 @@ def clean(raw: pd.DataFrame, pop: PopulationParams) -> tuple[pd.DataFrame, pd.Da
     return out.reset_index(drop=True), aux.reset_index(drop=True)
 
 
+def clean_raw_file(
+    pop: PopulationParams, require_outcome: bool = True
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Stream the raw parquet in batches through clean() (the full file doesn't fit in RAM)."""
+    batches = pq.ParquetFile(RAW_PARQUET).iter_batches(batch_size=BATCH_ROWS, columns=C.RAW_COLUMNS)
+    parts = [clean(batch.to_pandas(), pop, require_outcome) for batch in batches]
+    return (
+        pd.concat([p[0] for p in parts], ignore_index=True),
+        pd.concat([p[1] for p in parts], ignore_index=True),
+    )
+
+
 def main() -> None:
     params = load_params()
-    batches = pq.ParquetFile(RAW_PARQUET).iter_batches(batch_size=BATCH_ROWS, columns=C.RAW_COLUMNS)
-    parts = [clean(batch.to_pandas(), params.population) for batch in batches]
-
-    loans = CLEAN_SCHEMA.validate(pd.concat([p[0] for p in parts], ignore_index=True))
-    aux = AUX_SCHEMA.validate(pd.concat([p[1] for p in parts], ignore_index=True))
+    loans, aux = clean_raw_file(params.population)
+    loans, aux = CLEAN_SCHEMA.validate(loans), AUX_SCHEMA.validate(aux)
 
     CLEAN_PARQUET.parent.mkdir(parents=True, exist_ok=True)
     loans.to_parquet(CLEAN_PARQUET, index=False)

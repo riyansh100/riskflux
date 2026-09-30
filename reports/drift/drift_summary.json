@@ -1,0 +1,787 @@
+{
+  "reference": {
+    "period": "test split (2016-07..2017-04)",
+    "loans": 20000,
+    "mean_pd": 0.1509,
+    "reject_rate": 0.1406
+  },
+  "model_versions_seen": [
+    "1"
+  ],
+  "latest_month": "2020-09",
+  "drift_detected": true,
+  "months": {
+    "2017-05": {
+      "loans": 2000,
+      "drifted_share": 0.0,
+      "top_drifted": {},
+      "prediction_psi": 0.0078,
+      "mean_pd": 0.1464,
+      "reject_rate": 0.126,
+      "refer_rate": 0.0,
+      "max_missing_change": {
+        "mths_since_last_delinq": 0.0122
+      },
+      "alerts": []
+    },
+    "2017-06": {
+      "loans": 2000,
+      "drifted_share": 0.0,
+      "top_drifted": {},
+      "prediction_psi": 0.0057,
+      "mean_pd": 0.146,
+      "reject_rate": 0.1265,
+      "refer_rate": 0.0,
+      "max_missing_change": {
+        "mths_since_last_record": 0.0232
+      },
+      "alerts": []
+    },
+    "2017-07": {
+      "loans": 2000,
+      "drifted_share": 0.0161,
+      "top_drifted": {
+        "mths_since_last_record": 0.1312
+      },
+      "prediction_psi": 0.0167,
+      "mean_pd": 0.1457,
+      "reject_rate": 0.1295,
+      "refer_rate": 0.001,
+      "max_missing_change": {
+        "mths_since_last_record": 0.0282
+      },
+      "alerts": []
+    },
+    "2017-08": {
+      "loans": 2000,
+      "drifted_share": 0.0161,
+      "top_drifted": {
+        "mths_since_last_record": 0.1496
+      },
+      "prediction_psi": 0.0089,
+      "mean_pd": 0.146,
+      "reject_rate": 0.1255,
+      "refer_rate": 0.0,
+      "max_missing_change": {
+        "mths_since_last_record": 0.0602
+      },
+      "alerts": []
+    },
+    "2017-09": {
+      "loans": 2000,
+      "drifted_share": 0.0323,
+      "top_drifted": {
+        "mths_since_last_record": 0.1461,
+        "dti": 0.108
+      },
+      "prediction_psi": 0.011,
+      "mean_pd": 0.1462,
+      "reject_rate": 0.126,
+      "refer_rate": 0.002,
+      "max_missing_change": {
+        "mths_since_last_delinq": 0.0547
+      },
+      "alerts": []
+    },
+    "2017-10": {
+      "loans": 2000,
+      "drifted_share": 0.0323,
+      "top_drifted": {
+        "mths_since_last_record": 0.1745,
+        "dti": 0.1406
+      },
+      "prediction_psi": 0.029,
+      "mean_pd": 0.1369,
+      "reject_rate": 0.1005,
+      "refer_rate": 0.001,
+      "max_missing_change": {
+        "mths_since_last_delinq": 0.0747
+      },
+      "alerts": []
+    },
+    "2017-11": {
+      "loans": 2000,
+      "drifted_share": 0.0323,
+      "top_drifted": {
+        "mths_since_last_record": 0.2052,
+        "dti": 0.1203
+      },
+      "prediction_psi": 0.0384,
+      "mean_pd": 0.1365,
+      "reject_rate": 0.1045,
+      "refer_rate": 0.008,
+      "max_missing_change": {
+        "mths_since_last_delinq": 0.0843
+      },
+      "alerts": []
+    },
+    "2017-12": {
+      "loans": 2000,
+      "drifted_share": 0.0484,
+      "top_drifted": {
+        "mths_since_last_record": 0.3404,
+        "dti": 0.1453,
+        "fico_mid": 0.1063
+      },
+      "prediction_psi": 0.0363,
+      "mean_pd": 0.1391,
+      "reject_rate": 0.1065,
+      "refer_rate": 0.0235,
+      "max_missing_change": {
+        "mths_since_last_delinq": 0.0827
+      },
+      "alerts": []
+    },
+    "2018-01": {
+      "loans": 2000,
+      "drifted_share": 0.0645,
+      "top_drifted": {
+        "mths_since_last_record": 0.2279,
+        "fico_mid": 0.1149,
+        "dti": 0.1118,
+        "bc_util": 0.105
+      },
+      "prediction_psi": 0.0709,
+      "mean_pd": 0.1295,
+      "reject_rate": 0.0895,
+      "refer_rate": 0.0185,
+      "max_missing_change": {
+        "mths_since_last_delinq": 0.0707
+      },
+      "alerts": []
+    },
+    "2018-02": {
+      "loans": 2000,
+      "drifted_share": 0.0806,
+      "top_drifted": {
+        "dti": 0.2226,
+        "mths_since_last_record": 0.2077,
+        "fico_mid": 0.1141,
+        "loan_to_income": 0.1126,
+        "bc_util": 0.1017
+      },
+      "prediction_psi": 0.0406,
+      "mean_pd": 0.1389,
+      "reject_rate": 0.11,
+      "refer_rate": 0.0335,
+      "max_missing_change": {
+        "mths_since_last_delinq": 0.1082
+      },
+      "alerts": [
+        "missing rate of mths_since_last_delinq moved 11%"
+      ]
+    },
+    "2018-03": {
+      "loans": 2000,
+      "drifted_share": 0.0806,
+      "top_drifted": {
+        "mths_since_last_record": 0.216,
+        "dti": 0.1429,
+        "fico_mid": 0.139,
+        "loan_to_income": 0.1231,
+        "bc_util": 0.1045
+      },
+      "prediction_psi": 0.0374,
+      "mean_pd": 0.1402,
+      "reject_rate": 0.118,
+      "refer_rate": 0.0265,
+      "max_missing_change": {
+        "mths_since_last_delinq": 0.0917
+      },
+      "alerts": []
+    },
+    "2018-04": {
+      "loans": 2000,
+      "drifted_share": 0.0484,
+      "top_drifted": {
+        "mths_since_last_record": 0.2403,
+        "dti": 0.1814,
+        "bc_util": 0.1
+      },
+      "prediction_psi": 0.033,
+      "mean_pd": 0.1388,
+      "reject_rate": 0.1125,
+      "refer_rate": 0.0275,
+      "max_missing_change": {
+        "mths_since_last_delinq": 0.0823
+      },
+      "alerts": []
+    },
+    "2018-05": {
+      "loans": 2000,
+      "drifted_share": 0.0806,
+      "top_drifted": {
+        "mths_since_last_record": 0.4389,
+        "dti": 0.386,
+        "tax_liens": 0.2481,
+        "pub_rec": 0.1478,
+        "bc_util": 0.1005
+      },
+      "prediction_psi": 0.0359,
+      "mean_pd": 0.1424,
+      "reject_rate": 0.1165,
+      "refer_rate": 0.023,
+      "max_missing_change": {
+        "mths_since_last_record": 0.0762
+      },
+      "alerts": []
+    },
+    "2018-06": {
+      "loans": 2000,
+      "drifted_share": 0.1129,
+      "top_drifted": {
+        "mths_since_last_record": 0.4298,
+        "tax_liens": 0.251,
+        "dti": 0.16,
+        "pub_rec": 0.1434,
+        "bc_util": 0.1207
+      },
+      "prediction_psi": 0.0514,
+      "mean_pd": 0.136,
+      "reject_rate": 0.0925,
+      "refer_rate": 0.032,
+      "max_missing_change": {
+        "mths_since_last_delinq": 0.0893
+      },
+      "alerts": []
+    },
+    "2018-07": {
+      "loans": 2000,
+      "drifted_share": 0.0645,
+      "top_drifted": {
+        "mths_since_last_record": 0.6589,
+        "tax_liens": 0.251,
+        "pub_rec": 0.2194,
+        "dti": 0.1806
+      },
+      "prediction_psi": 0.0513,
+      "mean_pd": 0.1336,
+      "reject_rate": 0.0965,
+      "refer_rate": 0.022,
+      "max_missing_change": {
+        "mths_since_recent_revol_delinq": 0.0748
+      },
+      "alerts": []
+    },
+    "2018-08": {
+      "loans": 2000,
+      "drifted_share": 0.0806,
+      "top_drifted": {
+        "mths_since_last_record": 0.7057,
+        "tax_liens": 0.251,
+        "dti": 0.1625,
+        "pub_rec": 0.1156,
+        "bc_util": 0.1016
+      },
+      "prediction_psi": 0.0566,
+      "mean_pd": 0.1313,
+      "reject_rate": 0.0845,
+      "refer_rate": 0.02,
+      "max_missing_change": {
+        "mths_since_last_delinq": 0.0793
+      },
+      "alerts": []
+    },
+    "2018-09": {
+      "loans": 2000,
+      "drifted_share": 0.0645,
+      "top_drifted": {
+        "mths_since_last_record": 0.7519,
+        "tax_liens": 0.251,
+        "dti": 0.1816,
+        "pub_rec": 0.1716
+      },
+      "prediction_psi": 0.0605,
+      "mean_pd": 0.1314,
+      "reject_rate": 0.0845,
+      "refer_rate": 0.02,
+      "max_missing_change": {
+        "mths_since_last_delinq": 0.0827
+      },
+      "alerts": []
+    },
+    "2018-10": {
+      "loans": 2000,
+      "drifted_share": 0.0645,
+      "top_drifted": {
+        "mths_since_last_record": 0.6245,
+        "tax_liens": 0.251,
+        "dti": 0.2142,
+        "pub_rec": 0.1162
+      },
+      "prediction_psi": 0.0327,
+      "mean_pd": 0.1373,
+      "reject_rate": 0.102,
+      "refer_rate": 0.0215,
+      "max_missing_change": {
+        "mths_since_last_delinq": 0.0843
+      },
+      "alerts": []
+    },
+    "2018-11": {
+      "loans": 2000,
+      "drifted_share": 0.0645,
+      "top_drifted": {
+        "mths_since_last_record": 0.9839,
+        "tax_liens": 0.251,
+        "pub_rec": 0.2244,
+        "dti": 0.2128
+      },
+      "prediction_psi": 0.039,
+      "mean_pd": 0.1361,
+      "reject_rate": 0.0935,
+      "refer_rate": 0.0205,
+      "max_missing_change": {
+        "mths_since_last_record": 0.0797
+      },
+      "alerts": []
+    },
+    "2018-12": {
+      "loans": 2000,
+      "drifted_share": 0.0645,
+      "top_drifted": {
+        "mths_since_last_record": 0.7751,
+        "tax_liens": 0.251,
+        "dti": 0.1488,
+        "pub_rec": 0.1367
+      },
+      "prediction_psi": 0.0466,
+      "mean_pd": 0.1339,
+      "reject_rate": 0.089,
+      "refer_rate": 0.0185,
+      "max_missing_change": {
+        "mths_since_last_record": 0.0917
+      },
+      "alerts": []
+    },
+    "2019-01": {
+      "loans": 2000,
+      "drifted_share": 0.0968,
+      "top_drifted": {
+        "mths_since_last_record": 0.6717,
+        "tax_liens": 0.251,
+        "mths_since_recent_bc_dlq": 0.1821,
+        "dti": 0.1691,
+        "pub_rec": 0.1581
+      },
+      "prediction_psi": 0.0572,
+      "mean_pd": 0.1314,
+      "reject_rate": 0.093,
+      "refer_rate": 0.0135,
+      "max_missing_change": {
+        "mths_since_last_record": 0.0862
+      },
+      "alerts": []
+    },
+    "2019-02": {
+      "loans": 2000,
+      "drifted_share": 0.1129,
+      "top_drifted": {
+        "mths_since_last_record": 0.7908,
+        "tax_liens": 0.251,
+        "dti": 0.2046,
+        "pub_rec": 0.1664,
+        "bc_util": 0.1067
+      },
+      "prediction_psi": 0.0936,
+      "mean_pd": 0.1261,
+      "reject_rate": 0.0805,
+      "refer_rate": 0.0115,
+      "max_missing_change": {
+        "mths_since_last_record": 0.0892
+      },
+      "alerts": []
+    },
+    "2019-03": {
+      "loans": 2000,
+      "drifted_share": 0.0806,
+      "top_drifted": {
+        "mths_since_last_record": 0.9616,
+        "tax_liens": 0.251,
+        "dti": 0.1704,
+        "pub_rec": 0.1412,
+        "mths_since_recent_bc_dlq": 0.1277
+      },
+      "prediction_psi": 0.0592,
+      "mean_pd": 0.1307,
+      "reject_rate": 0.0865,
+      "refer_rate": 0.0155,
+      "max_missing_change": {
+        "mths_since_last_delinq": 0.0903
+      },
+      "alerts": []
+    },
+    "2019-04": {
+      "loans": 2000,
+      "drifted_share": 0.0645,
+      "top_drifted": {
+        "mths_since_last_record": 0.8204,
+        "tax_liens": 0.251,
+        "dti": 0.1893,
+        "pub_rec": 0.1431
+      },
+      "prediction_psi": 0.0387,
+      "mean_pd": 0.1349,
+      "reject_rate": 0.0975,
+      "refer_rate": 0.011,
+      "max_missing_change": {
+        "mths_since_last_record": 0.0862
+      },
+      "alerts": []
+    },
+    "2019-05": {
+      "loans": 2000,
+      "drifted_share": 0.0968,
+      "top_drifted": {
+        "mths_since_last_record": 0.8905,
+        "tax_liens": 0.251,
+        "pub_rec": 0.1954,
+        "dti": 0.155,
+        "total_bc_limit": 0.1067
+      },
+      "prediction_psi": 0.044,
+      "mean_pd": 0.134,
+      "reject_rate": 0.094,
+      "refer_rate": 0.0165,
+      "max_missing_change": {
+        "mths_since_last_record": 0.1017
+      },
+      "alerts": [
+        "missing rate of mths_since_last_record moved 10%"
+      ]
+    },
+    "2019-06": {
+      "loans": 2000,
+      "drifted_share": 0.129,
+      "top_drifted": {
+        "mths_since_last_record": 0.8672,
+        "tax_liens": 0.251,
+        "dti": 0.2189,
+        "pub_rec": 0.1716,
+        "fico_mid": 0.1321
+      },
+      "prediction_psi": 0.0992,
+      "mean_pd": 0.1249,
+      "reject_rate": 0.077,
+      "refer_rate": 0.0155,
+      "max_missing_change": {
+        "mths_since_last_record": 0.0942
+      },
+      "alerts": []
+    },
+    "2019-07": {
+      "loans": 2000,
+      "drifted_share": 0.0645,
+      "top_drifted": {
+        "mths_since_last_record": 0.8144,
+        "tax_liens": 0.251,
+        "pub_rec": 0.1927,
+        "dti": 0.1755
+      },
+      "prediction_psi": 0.0544,
+      "mean_pd": 0.1321,
+      "reject_rate": 0.0915,
+      "refer_rate": 0.019,
+      "max_missing_change": {
+        "mths_since_last_record": 0.1057
+      },
+      "alerts": [
+        "missing rate of mths_since_last_record moved 11%"
+      ]
+    },
+    "2019-08": {
+      "loans": 2000,
+      "drifted_share": 0.0806,
+      "top_drifted": {
+        "mths_since_last_record": 0.864,
+        "tax_liens": 0.251,
+        "dti": 0.1648,
+        "pub_rec": 0.1597,
+        "bc_open_to_buy": 0.1048
+      },
+      "prediction_psi": 0.069,
+      "mean_pd": 0.1296,
+      "reject_rate": 0.0765,
+      "refer_rate": 0.0155,
+      "max_missing_change": {
+        "mths_since_last_record": 0.0942
+      },
+      "alerts": []
+    },
+    "2019-09": {
+      "loans": 2000,
+      "drifted_share": 0.0968,
+      "top_drifted": {
+        "mths_since_last_record": 0.9295,
+        "tax_liens": 0.251,
+        "dti": 0.1801,
+        "pub_rec": 0.1728,
+        "mo_sin_old_il_acct": 0.1087
+      },
+      "prediction_psi": 0.059,
+      "mean_pd": 0.1309,
+      "reject_rate": 0.0855,
+      "refer_rate": 0.0155,
+      "max_missing_change": {
+        "mths_since_last_record": 0.0952
+      },
+      "alerts": []
+    },
+    "2019-10": {
+      "loans": 2000,
+      "drifted_share": 0.0645,
+      "top_drifted": {
+        "mths_since_last_record": 0.9311,
+        "tax_liens": 0.251,
+        "dti": 0.2378,
+        "pub_rec": 0.1806
+      },
+      "prediction_psi": 0.0554,
+      "mean_pd": 0.1345,
+      "reject_rate": 0.087,
+      "refer_rate": 0.016,
+      "max_missing_change": {
+        "mths_since_last_delinq": 0.1118
+      },
+      "alerts": [
+        "missing rate of mths_since_last_delinq moved 11%"
+      ]
+    },
+    "2019-11": {
+      "loans": 2000,
+      "drifted_share": 0.0806,
+      "top_drifted": {
+        "mths_since_last_record": 0.7577,
+        "tax_liens": 0.251,
+        "dti": 0.1915,
+        "pub_rec": 0.1609,
+        "bc_open_to_buy": 0.1053
+      },
+      "prediction_psi": 0.0262,
+      "mean_pd": 0.1378,
+      "reject_rate": 0.097,
+      "refer_rate": 0.0145,
+      "max_missing_change": {
+        "mths_since_last_record": 0.0952
+      },
+      "alerts": []
+    },
+    "2019-12": {
+      "loans": 2000,
+      "drifted_share": 0.0968,
+      "top_drifted": {
+        "mths_since_last_record": 0.8853,
+        "dti": 0.253,
+        "tax_liens": 0.251,
+        "pub_rec": 0.175,
+        "mo_sin_old_il_acct": 0.1297
+      },
+      "prediction_psi": 0.0152,
+      "mean_pd": 0.1425,
+      "reject_rate": 0.103,
+      "refer_rate": 0.012,
+      "max_missing_change": {
+        "mths_since_last_record": 0.1062
+      },
+      "alerts": [
+        "missing rate of mths_since_last_record moved 11%"
+      ]
+    },
+    "2020-01": {
+      "loans": 2000,
+      "drifted_share": 0.0968,
+      "top_drifted": {
+        "mths_since_last_record": 0.8382,
+        "dti": 0.2884,
+        "tax_liens": 0.251,
+        "pub_rec": 0.2276,
+        "total_bc_limit": 0.1296
+      },
+      "prediction_psi": 0.0435,
+      "mean_pd": 0.1352,
+      "reject_rate": 0.1055,
+      "refer_rate": 0.0185,
+      "max_missing_change": {
+        "mths_since_last_record": 0.1217
+      },
+      "alerts": [
+        "missing rate of mths_since_last_record moved 12%"
+      ]
+    },
+    "2020-02": {
+      "loans": 2000,
+      "drifted_share": 0.1129,
+      "top_drifted": {
+        "mths_since_last_record": 0.7887,
+        "tax_liens": 0.251,
+        "dti": 0.2073,
+        "pub_rec": 0.2014,
+        "total_bc_limit": 0.1584
+      },
+      "prediction_psi": 0.0296,
+      "mean_pd": 0.1389,
+      "reject_rate": 0.106,
+      "refer_rate": 0.0185,
+      "max_missing_change": {
+        "mths_since_last_record": 0.1022
+      },
+      "alerts": [
+        "missing rate of mths_since_last_record moved 10%"
+      ]
+    },
+    "2020-03": {
+      "loans": 2000,
+      "drifted_share": 0.1774,
+      "top_drifted": {
+        "mths_since_last_record": 0.8418,
+        "dti": 0.2618,
+        "tax_liens": 0.251,
+        "total_bc_limit": 0.1995,
+        "pub_rec": 0.1826
+      },
+      "prediction_psi": 0.0419,
+      "mean_pd": 0.1348,
+      "reject_rate": 0.0995,
+      "refer_rate": 0.014,
+      "max_missing_change": {
+        "mths_since_last_record": 0.1112
+      },
+      "alerts": [
+        "missing rate of mths_since_last_record moved 11%"
+      ]
+    },
+    "2020-04": {
+      "loans": 2000,
+      "drifted_share": 0.2742,
+      "top_drifted": {
+        "mths_since_last_record": 1.0499,
+        "fico_mid": 0.5632,
+        "bc_open_to_buy": 0.5604,
+        "total_bc_limit": 0.5591,
+        "bc_util": 0.3688
+      },
+      "prediction_psi": 0.4197,
+      "mean_pd": 0.0989,
+      "reject_rate": 0.03,
+      "refer_rate": 0.011,
+      "max_missing_change": {
+        "mths_since_last_delinq": 0.1512
+      },
+      "alerts": [
+        "prediction PSI 0.420 >= 0.2",
+        "missing rate of mths_since_last_delinq moved 15%"
+      ]
+    },
+    "2020-05": {
+      "loans": 1718,
+      "drifted_share": 0.3226,
+      "top_drifted": {
+        "mths_since_last_record": 1.1761,
+        "total_bc_limit": 0.3715,
+        "fico_mid": 0.3488,
+        "bc_open_to_buy": 0.3406,
+        "tax_liens": 0.251
+      },
+      "prediction_psi": 0.3785,
+      "mean_pd": 0.1011,
+      "reject_rate": 0.0378,
+      "refer_rate": 0.0076,
+      "max_missing_change": {
+        "mths_since_last_record": 0.1344
+      },
+      "alerts": [
+        "32% of model inputs drifted (PSI >= 0.1)",
+        "prediction PSI 0.379 >= 0.2",
+        "missing rate of mths_since_last_record moved 13%"
+      ]
+    },
+    "2020-06": {
+      "loans": 2000,
+      "drifted_share": 0.2258,
+      "top_drifted": {
+        "mths_since_last_record": 1.0254,
+        "fico_mid": 0.3779,
+        "bc_open_to_buy": 0.3194,
+        "total_bc_limit": 0.2793,
+        "tax_liens": 0.251
+      },
+      "prediction_psi": 0.3795,
+      "mean_pd": 0.101,
+      "reject_rate": 0.04,
+      "refer_rate": 0.0035,
+      "max_missing_change": {
+        "mths_since_last_delinq": 0.1308
+      },
+      "alerts": [
+        "prediction PSI 0.380 >= 0.2",
+        "missing rate of mths_since_last_delinq moved 13%"
+      ]
+    },
+    "2020-07": {
+      "loans": 2000,
+      "drifted_share": 0.2419,
+      "top_drifted": {
+        "mths_since_last_record": 1.0597,
+        "fico_mid": 0.2904,
+        "tax_liens": 0.251,
+        "bc_open_to_buy": 0.2145,
+        "pub_rec": 0.2109
+      },
+      "prediction_psi": 0.3455,
+      "mean_pd": 0.1036,
+      "reject_rate": 0.036,
+      "refer_rate": 0.0075,
+      "max_missing_change": {
+        "mths_since_last_record": 0.1207
+      },
+      "alerts": [
+        "prediction PSI 0.345 >= 0.2",
+        "missing rate of mths_since_last_record moved 12%"
+      ]
+    },
+    "2020-08": {
+      "loans": 2000,
+      "drifted_share": 0.2097,
+      "top_drifted": {
+        "mths_since_last_record": 0.5345,
+        "fico_mid": 0.2534,
+        "tax_liens": 0.251,
+        "dti": 0.2272,
+        "bc_open_to_buy": 0.2017
+      },
+      "prediction_psi": 0.2564,
+      "mean_pd": 0.1095,
+      "reject_rate": 0.048,
+      "refer_rate": 0.0065,
+      "max_missing_change": {
+        "mths_since_last_record": 0.1127
+      },
+      "alerts": [
+        "prediction PSI 0.256 >= 0.2",
+        "missing rate of mths_since_last_record moved 11%"
+      ]
+    },
+    "2020-09": {
+      "loans": 2000,
+      "drifted_share": 0.1935,
+      "top_drifted": {
+        "mths_since_last_record": 0.8184,
+        "dti": 0.5416,
+        "tax_liens": 0.251,
+        "pub_rec": 0.2097,
+        "fico_mid": 0.2015
+      },
+      "prediction_psi": 0.2591,
+      "mean_pd": 0.1101,
+      "reject_rate": 0.042,
+      "refer_rate": 0.0055,
+      "max_missing_change": {
+        "mths_since_last_delinq": 0.1102
+      },
+      "alerts": [
+        "prediction PSI 0.259 >= 0.2",
+        "missing rate of mths_since_last_delinq moved 11%"
+      ]
+    }
+  }
+}

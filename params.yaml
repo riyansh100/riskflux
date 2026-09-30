@@ -35,3 +35,13 @@ promotion:                     # champion/challenger rules (registry/promote.py)
   min_cost_improvement: 0.001  # challenger must cut dollar cost by >= 0.1% vs champion
   max_auc_drop: 0.005          # ...without losing more than 0.005 ROC-AUC
   max_ece: 0.02                # ...and must stay calibrated (cost math depends on it)
+
+monitoring:
+  replay: {start: "2017-05", end: "2020-09"}  # loans issued after the modeling window
+  sample_per_month: 2000       # replayed loans per issue month (keeps a replay to minutes)
+  seed: 42
+  reference_sample: 20000      # loans sampled from the test period as the drift reference
+  psi_threshold: 0.1           # a feature "drifts" at PSI >= 0.1 (industry: 0.1-0.25 watch, >0.25 act)
+  drifted_share_alert: 0.3     # alert if >= 30% of model inputs drift in a month...
+  prediction_psi_alert: 0.2    # ...or if the predicted-PD distribution itself shifts
+  missing_share_alert: 0.1     # ...or if any input's missing rate moves by >= 10 points

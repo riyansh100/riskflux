@@ -8,7 +8,7 @@ registry with promotion, a containerized inference API, drift monitoring, automa
 retraining, and a model card.
 
 ## Status
-🚧 Step 8 done — FastAPI inference service in Docker (champion model baked in)
+🚧 Step 9 done — Evidently drift monitoring on replayed production traffic
 
 ## Stack
 Python 3.11 · uv · DVC · pandera · LightGBM · MLflow · FastAPI · Docker · Evidently · GitHub Actions · GCP Cloud Run
@@ -71,6 +71,21 @@ docker run --rm -p 8080:8080 riskflux:v1                        # docs at http:/
 
 Local Docker benchmark (500 real loans, sequential): **p50 25 ms, p95 36 ms**. Container scores are
 identical to the batch pipeline on 1,000 loans.
+
+## Drift monitoring (Evidently)
+81,718 later loans (2017-05 … 2020-09) replayed through the Docker API in time order; the drift job
+compares each month of the API's prediction log to the test period (PSI on the 62 model inputs and on
+predicted PD, plus missing rates).
+
+![Drift timeline](reports/drift/drift_timeline.png)
+
+It catches two real events: the credit bureaus dropping tax liens and civil judgments (2017-18),
+and COVID-19 (prediction PSI 0.04 → 0.42 in April 2020). Details: [docs/DECISIONS.md](docs/DECISIONS.md).
+```bash
+PREDICTION_LOG_PATH=data/monitoring/predictions.jsonl uv run uvicorn riskflux.serving.app:app --port 8080
+uv run python -m riskflux.monitoring.replay_traffic     # replay loans through the API
+uv run python -m riskflux.monitoring.drift              # -> reports/drift/{drift_summary.json, drift_timeline.png}
+```
 
 ## Data
 - Source: [Lending Club 2007–2020Q3 on Kaggle](https://www.kaggle.com/datasets/ethon0426/lending-club-20072020q1)

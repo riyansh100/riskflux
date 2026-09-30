@@ -121,3 +121,18 @@ stages:
     metrics:
       - reports/ablation.json:
           cache: false
+
+  replay_data:  # simulated production traffic for monitoring (Step 9)
+    cmd: python -m riskflux.data.replay
+    deps:
+      - data/interim/loans_raw.parquet
+      - src/riskflux/data/replay.py
+      - src/riskflux/data/clean.py
+      - src/riskflux/columns.py
+      - src/riskflux/config.py
+      - src/riskflux/schemas.py
+    params:
+      - population
+      - monitoring
+    outs:
+      - data/monitoring/replay_loans.parquet

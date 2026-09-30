@@ -52,31 +52,50 @@ def _numeric_check(name: str) -> pa.Check:
     return pa.Check.in_range(low, high) if high is not None else pa.Check.ge(low)
 
 
-CLEAN_SCHEMA = pa.DataFrameSchema(
-    {
-        C.ID: pa.Column(int, pa.Check.ge(0), unique=True),
-        C.ISSUE_DATE: pa.Column("datetime64[ns]"),
-        C.TARGET: pa.Column("int8", pa.Check.isin([0, 1])),
-        **{
-            name: pa.Column(float, _numeric_check(name), nullable=name not in REQUIRED)
-            for name in C.NUMERIC_FEATURES
-        },
-        **{name: pa.Column(str, pa.Check.isin(ALLOWED[name])) for name in C.CATEGORICAL_FEATURES},
-        **{name: pa.Column("datetime64[ns]") for name in C.DATE_FEATURES},
-    },
-    checks=[
+def _loan_schema(outcome_known: bool) -> pa.DataFrameSchema:
+    """Typed loan data. outcome_known=False is for replayed (not yet matured) loans:
+    the label may be missing and the default-rate sanity check doesn't apply."""
+    label = (
+        pa.Column("int8", pa.Check.isin([0, 1]))
+        if outcome_known
+        else pa.Column("Int8", pa.Check.isin([0, 1]), nullable=True)
+    )
+    checks = [
         pa.Check(
             lambda df: df["fico_range_high"] >= df["fico_range_low"], name="fico_range_ordered"
         ),
         pa.Check(
             lambda df: df["earliest_cr_line"] <= df[C.ISSUE_DATE], name="credit_line_before_issue"
         ),
+    ]
+    if outcome_known:
         # Catches label bugs (e.g. everything mapped to 0). EDA: 14.7%.
-        pa.Check(lambda df: 0.05 <= df[C.TARGET].mean() <= 0.35, name="default_rate_plausible"),
-    ],
-    strict=True,
-    ordered=True,
-)
+        checks.append(
+            pa.Check(lambda df: 0.05 <= df[C.TARGET].mean() <= 0.35, name="default_rate_plausible")
+        )
+    return pa.DataFrameSchema(
+        {
+            C.ID: pa.Column(int, pa.Check.ge(0), unique=True),
+            C.ISSUE_DATE: pa.Column("datetime64[ns]"),
+            C.TARGET: label,
+            **{
+                name: pa.Column(float, _numeric_check(name), nullable=name not in REQUIRED)
+                for name in C.NUMERIC_FEATURES
+            },
+            **{
+                name: pa.Column(str, pa.Check.isin(ALLOWED[name]))
+                for name in C.CATEGORICAL_FEATURES
+            },
+            **{name: pa.Column("datetime64[ns]") for name in C.DATE_FEATURES},
+        },
+        checks=checks,
+        strict=True,
+        ordered=True,
+    )
+
+
+CLEAN_SCHEMA = _loan_schema(outcome_known=True)
+REPLAY_SCHEMA = _loan_schema(outcome_known=False)
 
 AUX_SCHEMA = pa.DataFrameSchema(
     {
