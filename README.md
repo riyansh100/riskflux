@@ -8,7 +8,7 @@ registry with promotion, a containerized inference API, drift monitoring, automa
 retraining, and a model card.
 
 ## Status
-🚧 Step 7 done — MLflow tracking + model registry (champion/challenger) on DagsHub
+🚧 Step 8 done — FastAPI inference service in Docker (champion model baked in)
 
 ## Stack
 Python 3.11 · uv · DVC · pandera · LightGBM · MLflow · FastAPI · Docker · Evidently · GitHub Actions · GCP Cloud Run
@@ -56,6 +56,21 @@ uv run --env-file .env python -m riskflux.registry.promote        # promote to @
 ```
 `log_run` refuses to log if `dvc status` isn't clean or there are uncommitted changes, so every
 registered version maps to one git commit and exact data hashes.
+
+## Inference API (FastAPI + Docker)
+```bash
+uv run --env-file .env python -m riskflux.serving.fetch_model   # @champion -> build/model (md5-verified)
+docker build -t riskflux:v1 .
+docker run --rm -p 8080:8080 riskflux:v1                        # docs at http://localhost:8080/docs
+```
+| Endpoint | Purpose |
+|---|---|
+| `GET /health` · `GET /ready` | liveness · readiness (503 until the model is loaded) |
+| `GET /metadata` | registry version, git commit, threshold |
+| `POST /predict` · `POST /predict/batch` | PD, decision (`approve` / `reject` / `refer`), expected loss, top-3 reason codes, policy flags |
+
+Local Docker benchmark (500 real loans, sequential): **p50 25 ms, p95 36 ms**. Container scores are
+identical to the batch pipeline on 1,000 loans.
 
 ## Data
 - Source: [Lending Club 2007–2020Q3 on Kaggle](https://www.kaggle.com/datasets/ethon0426/lending-club-20072020q1)

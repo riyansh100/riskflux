@@ -1,0 +1,9 @@
+# Allowlist: ignore everything, then admit only what the image needs.
+# Keeps .env (secrets), data/, .git and caches out of the build context by construction.
+*
+!pyproject.toml
+!uv.lock
+!README.md
+!src/
+!build/model/
+**/__pycache__

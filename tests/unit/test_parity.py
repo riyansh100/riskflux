@@ -7,7 +7,6 @@ score whether it arrives as a row of the training data or as a JSON request to t
 """
 
 import json
-import math
 from pathlib import Path
 
 import lightgbm as lgb
@@ -22,6 +21,7 @@ from riskflux.features.pipeline import build_feature_pipeline
 from riskflux.models.calibration import IsotonicCalibrated
 from riskflux.models.io import load_model
 from riskflux.schemas import LoanApplication, applications_to_frame
+from riskflux.serving.client import row_to_request
 from tests.conftest import make_clean_frame, make_raw
 
 ROOT = Path(__file__).parents[2]
@@ -32,16 +32,7 @@ TRAINED_POLICY = ROOT / "models/policy.json"
 
 def to_request_json(row: pd.Series) -> str:
     """Serialize a training row the way an API client would send it."""
-    body = {"application_date": row[C.ISSUE_DATE].date().isoformat()}
-    for name in C.FEATURES:
-        value = row[name]
-        if isinstance(value, pd.Timestamp):
-            body[name] = value.date().isoformat()
-        elif isinstance(value, float) and math.isnan(value):
-            body[name] = None
-        else:
-            body[name] = value
-    return json.dumps(body)
+    return json.dumps(row_to_request(row))
 
 
 def serving_frame(loans: pd.DataFrame) -> pd.DataFrame:
