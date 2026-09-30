@@ -4,10 +4,10 @@
 population:
   term_months: 36
   application_type: Individual
-  issue_start: "2013-01"  # bureau wave-2 fields fully populated from 2012-09 (EDA §3)
-  issue_end: "2017-04"    # last cohort with >=98% of loans resolved (EDA §2)
+  issue_start: "2013-01"  # derived from clock.as_of by retrain/plan.py (don't hand-edit)
+  issue_end: "2017-04"    # = as_of - maturity: last cohort with >=98% of loans resolved (EDA §2)
 
-split:                    # out-of-time; contiguous; inclusive months (EDA §10)
+split:                    # out-of-time; contiguous; inclusive months; derived from clock.as_of
   train: {start: "2013-01", end: "2015-12"}
   val:   {start: "2016-01", end: "2016-06"}
   test:  {start: "2016-07", end: "2017-04"}
@@ -45,3 +45,16 @@ monitoring:
   drifted_share_alert: 0.3     # alert if >= 30% of model inputs drift in a month...
   prediction_psi_alert: 0.2    # ...or if the predicted-PD distribution itself shifts
   missing_share_alert: 0.1     # ...or if any input's missing rate moves by >= 10 points
+
+clock:                         # simulated "today" (Step 10). Outcomes are known only for loans
+  as_of: "2020-09"             # that matured by this date; retraining derives all windows from it.
+
+retraining:
+  data_snapshot: "2020-09"     # the Kaggle file's outcomes are as of here: the clock can't pass it
+  maturity_months: 41          # 36-month term + 5-month buffer for late/modified loans (EDA: >=98% resolved)
+  train_start: "2013-01"       # bureau wave-2 fields complete from here (EDA §3)
+  val_months: 6
+  test_months: 10              # newest matured window: out-of-time test AND promotion set
+
+backtest:                      # what would retraining have been worth? (retrain/backtest.py)
+  as_of: ["2018-09", "2019-09", "2020-09"]

@@ -79,14 +79,14 @@ def test_champion_challenger_flow(local_mlflow, trained):
 
     first = register(trained)
     assert alias(local_mlflow, CHALLENGER) == first
-    promoted, reason = promote(loans, aux, RULES)
+    promoted, reason, _ = promote(loans, aux, RULES)
     assert promoted and "bootstrap" in reason
     assert alias(local_mlflow, CHAMPION) == first
 
     # Same model again: no cost improvement -> champion stays put.
     second = register(trained)
     assert alias(local_mlflow, CHALLENGER) == second
-    promoted, reason = promote(loans, aux, RULES)
+    promoted, reason, _ = promote(loans, aux, RULES)
     assert not promoted and "improvement" in reason
     assert alias(local_mlflow, CHAMPION) == first
     decision = local_mlflow.get_model_version(REGISTERED_MODEL, second).tags["promotion_decision"]
@@ -96,7 +96,7 @@ def test_champion_challenger_flow(local_mlflow, trained):
 def test_version_logged_from_dirty_code_is_never_promoted(local_mlflow, trained):
     *_, loans, aux = trained
     register(trained, git_dirty="true")
-    promoted, reason = promote(loans, aux, RULES)
+    promoted, reason, _ = promote(loans, aux, RULES)
     assert not promoted and "uncommitted" in reason
 
 
@@ -105,3 +105,18 @@ def test_policy_is_logged_with_the_run(local_mlflow, trained):
     run_id = local_mlflow.get_model_version_by_alias(REGISTERED_MODEL, CHALLENGER).run_id
     local = mlflow.artifacts.download_artifacts(run_id=run_id, artifact_path="policy.json")
     assert json.loads(open(local).read())["threshold"] == POLICY["threshold"]
+
+
+def test_dry_run_decides_but_changes_nothing(local_mlflow, trained):
+    *_, loans, aux = trained
+    register(trained)
+    promoted, reason, evaluations = promote(loans, aux, RULES, dry_run=True)
+    assert promoted and "bootstrap" in reason and len(evaluations) == 1
+    assert CHAMPION not in local_mlflow.get_registered_model(REGISTERED_MODEL).aliases
+
+
+def test_challenger_must_be_the_model_in_dvc_lock(local_mlflow, trained):
+    *_, loans, aux = trained
+    register(trained, **{"model.joblib_md5": "aaa"})
+    promoted, reason, _ = promote(loans, aux, RULES, expected_model_md5="bbb")
+    assert not promoted and "dvc.lock" in reason

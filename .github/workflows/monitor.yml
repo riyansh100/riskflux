@@ -1,0 +1,76 @@
+# Weekly: serve the @champion model, replay traffic through it, run the drift job.
+# On a drift alert, trigger the retraining workflow.
+name: Monitor
+
+on:
+  schedule:
+    - cron: "0 6 * * 1"  # Mondays 06:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: write  # to dispatch the retraining workflow
+
+concurrency:
+  group: monitor
+  cancel-in-progress: false
+
+jobs:
+  drift:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+        with:
+          dagshub-token: ${{ secrets.DAGSHUB_TOKEN }}
+
+      - name: Pull replay traffic + reference data
+        run: >
+          uv run dvc pull data/monitoring/replay_loans.parquet data/processed/test.parquet
+          models/model.joblib
+
+      - name: Fetch @champion (what production serves)
+        run: uv run python -m riskflux.serving.fetch_model
+
+      - name: Serve the champion and replay traffic through it
+        run: |
+          RISKFLUX_MODEL_DIR=build/model PREDICTION_LOG_PATH=data/monitoring/predictions.jsonl \
+            uv run uvicorn riskflux.serving.app:app --port 8080 > api.log 2>&1 &
+          for _ in $(seq 1 60); do curl -sf localhost:8080/ready && break; sleep 1; done
+          uv run python -m riskflux.monitoring.replay_traffic --url http://localhost:8080
+
+      - name: Drift job
+        id: drift
+        run: |
+          uv run python -m riskflux.monitoring.drift
+          uv run python - <<'EOF' >> "$GITHUB_OUTPUT"
+          import json
+          summary = json.load(open("reports/drift/drift_summary.json"))
+          print(f"detected={str(summary['drift_detected']).lower()}")
+          print(f"month={summary['latest_month']}")
+          EOF
+          uv run python - <<'EOF' >> "$GITHUB_STEP_SUMMARY"
+          import json
+          s = json.load(open("reports/drift/drift_summary.json"))
+          m = s["months"][s["latest_month"]]
+          print(f"### Drift check: {s['latest_month']} -> {'DRIFT DETECTED' if s['drift_detected'] else 'no drift'}")
+          print(f"- prediction PSI {m['prediction_psi']} | drifted inputs {m['drifted_share']:.0%} | reject rate {m['reject_rate']:.1%}")
+          for alert in m["alerts"]:
+              print(f"- ALERT: {alert}")
+          EOF
+
+      - name: Upload drift reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: drift-report
+          path: |
+            reports/drift/
+            api.log
+
+      - name: Trigger retraining on drift
+        if: steps.drift.outputs.detected == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          MONTH: ${{ steps.drift.outputs.month }}
+        run: gh workflow run retrain.yml -f as_of="$MONTH" -f reason="drift detected in $MONTH"

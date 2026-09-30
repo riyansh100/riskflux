@@ -35,6 +35,9 @@ Evidence for data decisions: [`notebooks/01_eda.ipynb`](../notebooks/01_eda.ipyn
 | D27 | Container | `fetch_model` pulls `@champion` from MLflow outside the build and verifies its md5 against the registry lineage tag; multi-stage uv Dockerfile (deps layer cached on `uv.lock`), slim runtime + `libgomp1`, non-root user, allowlist `.dockerignore`, one uvicorn worker per container | No registry credentials in the image; the image provably carries the registered model. The allowlist keeps `.env`, data and git history out of the build context by construction. Cloud Run scales by containers, so one worker each keeps memory predictable. |
 | D28 | Simulated production traffic | `replay_data` DVC stage: 36-month individual loans issued 2017-05 … 2020-09 (after the modeling window), parsed by the same `clean()` with in-flight loans kept (label `<NA>`), 2,000 per month with a fixed seed (81,718 loans). Replayed in issue-date order through the running Docker image; the API's own prediction log is the monitoring input | Monitoring reads what the service actually logged, as in production. Grouping by application month (event time), not log time, keeps a fast replay equivalent to 41 real months. |
 | D29 | Drift detection | Evidently, **PSI** per model input *after* feature engineering + PSI of predicted PD, vs a 20k-loan sample of the test period scored by the champion; plus missing-rate change (PSI ignores missing values) and decision rates. Monthly alert if ≥ 30% of inputs drift, prediction PSI ≥ 0.2, or any missing rate moves ≥ 10 points | PSI is the credit-risk industry standard. Engineered features = exactly what the model sees, and raw dates can't fake drift. The reference is where performance was actually measured. |
+| D30 | Simulated clock | `clock.as_of` drives everything: outcomes are "known" for loans issued ≤ as_of − 41 months (36-month term + 5-month buffer, the EDA's ≥98%-resolved rule). The newest 10 matured months = test **and** promotion window, the 6 before = val, the rest from 2013-01 = train. `retrain/plan.py` rewrites `params.yaml` from it (comments kept); config loading fails if windows and clock disagree; the clock can't go backwards or past the data snapshot (2020-09) | Credit labels arrive ~3.5 years late, so "retrain on new data" means "retrain when new cohorts mature". Each promotion window is newer than anything the champion saw. |
+| D31 | Automation (GitHub Actions) | **CI** on every PR (ruff, 131 tests, Docker build + smoke test with a stand-in model, no secrets). **Monitor** weekly: serve @champion, replay traffic, drift job, dispatch retrain on alert. **Retrain** monthly / on demand / on drift: plan → no new outcomes ⇒ escalate via a GitHub issue; else `dvc repro` → branch → @challenger → promotion dry run → PR. **Promote** when a merged PR changes `dvc.lock`, only if @challenger's model md5 equals `dvc.lock` | Automation proposes, a human approves by merging (model-risk sign-off). Content-hash checks survive squash merges and history rewrites. |
+| D32 | Retraining backtest | DVC stage: the production training procedure run as of 2018-09 / 2019-09 / 2020-09, each model scored on every later matured window | Quantifies the value of retraining instead of assuming it. |
 
 ## Results (test: 239,705 loans issued 2016-07 … 2017-04)
 | Metric | Value |
@@ -49,6 +52,23 @@ Evidence for data decisions: [`notebooks/01_eda.ipynb`](../notebooks/01_eda.ipyn
 - **2017-05 → 2018-01: stable.** Prediction PSI < 0.08, no alerts.
 - **2018 onward: upstream data change.** `mths_since_last_record` PSI ≈ 0.9, `tax_liens` 0.25, `pub_rec` ~0.2, and public-record missing rates up 10+ points. This matches the credit bureaus removing tax liens and civil judgments from reports (NCAP, 2017-07 … 2018-04): a change in the data source, not in borrowers.
 - **2020-04: COVID.** Prediction PSI jumps 0.04 → 0.42; the policy's reject rate falls from ~10% to 3% as Lending Club tightened credit (only much safer applicants were approved). Refer rate: 1.4% of replayed loans fell outside the training approval box, versus 0% in the test period.
+
+## Retraining backtest (`reports/backtest.json`)
+Scored on the newest matured window (2016-07 … 2017-04):
+
+| Model trained as of | ROC-AUC | ECE | Savings vs approve-all |
+|---|---|---|---|
+| 2018-09 (frozen 2 years) | 0.672 | 0.024 | 1.85% |
+| 2019-09 (frozen 1 year) | 0.683 | 0.013 | 2.80% |
+| 2020-09 (retrained) | 0.688 | 0.005 | 2.93% |
+
+A two-year-old model keeps most of its ranking power but loses ~37% of its dollar value, mostly
+through calibration decay: defaults rose, the stale model under-predicts them, and its reject rate
+falls from 14% to 4%. In the 2015-07 … 2016-04 window, retraining lifted savings from 3.0% to 5.2%.
+
+**Why the live retrain workflow ends in "escalate":** the dataset's outcomes stop at 2020-09, so the
+clock can't move past it and no newer cohort will ever mature. The drift seen in 2018–2020 is exactly
+the real-world case where monitoring fires years before retraining can help.
 
 ## Open questions
 - **Global threshold vs per-loan expected-value rule:** val favours the threshold (6.9% vs 5.3%), test favours the EV rule (3.4% vs 2.9%). Val is biased toward the threshold (it was tuned there; the EV rule has nothing to tune). Settle with a rolling-origin backtest over several periods, not by switching on test results.
@@ -76,6 +96,11 @@ Evidence for data decisions: [`notebooks/01_eda.ipynb`](../notebooks/01_eda.ipyn
 - **Drift ≠ performance loss:** PSI says inputs changed, not that decisions got worse. Realized performance needs labels, which arrive months later (Step 10 simulates their arrival).
 - **Prediction log is a local JSONL file** (via a Docker volume). On Cloud Run the same records go to Cloud Logging; a real setup would sink them to a warehouse (e.g. BigQuery) for the monitoring job.
 - **Monthly batch monitoring only:** no real-time alerting or dashboards.
+- **The retrain → PR path never runs live** on this dataset (clock capped at the snapshot); it's covered by tests on a copy of params.yaml with a later snapshot, and by the backtest.
+- **PRs opened by the workflow's `GITHUB_TOKEN` don't trigger CI** (GitHub's rule against recursive runs); the retrain job runs the pipeline itself, but a real setup would use a GitHub App token so CI also runs on bot PRs.
+- **Retrain-bot commits use the repo owner's identity**, so they are attributed to riyansh100. A team would use a dedicated bot account.
+- **Monitoring runs on replayed traffic in CI**, not on live production logs.
+- **No label-proxy retraining:** a short-horizon proxy (e.g. 90+ days past due within 12 months) would allow earlier retrains; not built.
 - **No feature store:** a shared Python module replaces Feast/Tecton.
 - **No shadow or canary rollout:** promotion goes straight to production.
 - **Limited fairness analysis:** no protected attributes in the data.

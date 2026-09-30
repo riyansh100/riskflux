@@ -1,0 +1,35 @@
+name: Set up RiskFlux
+description: Install uv and the locked environment; configure DVC + MLflow credentials if a DagsHub token is given.
+
+inputs:
+  dagshub-token:
+    description: DagsHub token (omit for jobs that need no data or registry access)
+    required: false
+    default: ""
+
+runs:
+  using: composite
+  steps:
+    - uses: astral-sh/setup-uv@v6
+      with:
+        enable-cache: true
+
+    - name: Install locked dependencies
+      shell: bash
+      run: uv sync --frozen
+
+    - name: Configure DagsHub (DVC remote + MLflow)
+      if: inputs.dagshub-token != ''
+      shell: bash
+      env:
+        TOKEN: ${{ inputs.dagshub-token }}
+      run: |
+        # DVC credentials go to .dvc/config.local (never committed)
+        uv run dvc remote modify origin --local access_key_id "$TOKEN"
+        uv run dvc remote modify origin --local secret_access_key "$TOKEN"
+        {
+          echo "MLFLOW_TRACKING_URI=https://dagshub.com/riyansh100/riskflux.mlflow"
+          echo "MLFLOW_TRACKING_USERNAME=riyansh100"
+          echo "MLFLOW_TRACKING_PASSWORD=$TOKEN"
+          echo "MLFLOW_DISABLE_AGENT_HINT=1"
+        } >> "$GITHUB_ENV"

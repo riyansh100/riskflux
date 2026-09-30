@@ -44,12 +44,12 @@ def fit_lightgbm(X_train, y_train, X_val, y_val, params) -> lgb.LGBMClassifier:
     return model
 
 
-def main() -> None:
-    params = load_params()
-    train, val = load_split("train"), load_split("val")
+def fit_policy_model(train, val, train_aux, val_aux, params) -> tuple[Pipeline, dict, dict]:
+    """The full training procedure: cost model (train only) -> features -> LightGBM
+    (early-stopped on val) -> isotonic calibration (val) -> cost-optimal threshold (val).
+    Returns (pipeline, policy, metrics). Shared by the train stage and the backtest."""
     y_train, y_val = train[C.TARGET].to_numpy(), val[C.TARGET].to_numpy()
-
-    cost_model = estimate_cost_model(train, aux_for(train), params.population.term_months)
+    cost_model = estimate_cost_model(train, train_aux, params.population.term_months)
 
     features = build_feature_pipeline().fit(train)
     X_train, X_val = features.transform(train), features.transform(val)
@@ -57,7 +57,6 @@ def main() -> None:
     calibrated = IsotonicCalibrated(lgbm).fit(X_val, y_val)
     pipeline = Pipeline([*features.steps, ("model", calibrated)])
 
-    val_aux = aux_for(val)
     loss, profit = cost_model.loss_if_default(val_aux), cost_model.profit_if_good(val_aux)
     pd_val = pipeline.predict_proba(val)[:, 1]
     curve = cost_curve(y_val, pd_val, loss, profit, params.cost.threshold_grid)
@@ -69,7 +68,6 @@ def main() -> None:
         "features": MODEL_FEATURES,
         "best_iteration": int(lgbm.best_iteration_),
     }
-    save_model(pipeline, policy)
 
     approve_all = decision_cost(y_val, pd_val > 1, loss, profit)  # reject nobody
     chosen = curve.loc[curve["threshold"] == threshold].iloc[0]
@@ -95,10 +93,18 @@ def main() -> None:
             "reject_rate": round(float(ev_reject.mean()), 4),
         },
     }
+    return pipeline, policy, metrics
+
+
+def main() -> None:
+    params = load_params()
+    train, val = load_split("train"), load_split("val")
+    pipeline, policy, metrics = fit_policy_model(train, val, aux_for(train), aux_for(val), params)
+    save_model(pipeline, policy)
     write_json(TRAIN_METRICS, metrics)
     print(
         f"trees={metrics['best_iteration']}  val AUC={metrics['val_calibrated']['roc_auc']}  "
-        f"threshold={threshold}  val savings={metrics['val_cost']['savings_pct']}%"
+        f"threshold={policy['threshold']}  val savings={metrics['val_cost']['savings_pct']}%"
     )
 
 

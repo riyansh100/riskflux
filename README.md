@@ -1,5 +1,7 @@
 # RiskFlux
 
+[![CI](https://github.com/riyansh100/riskflux/actions/workflows/ci.yml/badge.svg)](https://github.com/riyansh100/riskflux/actions/workflows/ci.yml)
+
 Production-grade ML pipeline for loan default prediction on Lending Club data (2007–2020Q3).
 
 The model is intentionally simple (LightGBM). The focus is the infrastructure around it:
@@ -8,7 +10,7 @@ registry with promotion, a containerized inference API, drift monitoring, automa
 retraining, and a model card.
 
 ## Status
-🚧 Step 9 done — Evidently drift monitoring on replayed production traffic
+🚧 Step 10 done — CI + automated monitoring, retraining and promotion (GitHub Actions)
 
 ## Stack
 Python 3.11 · uv · DVC · pandera · LightGBM · MLflow · FastAPI · Docker · Evidently · GitHub Actions · GCP Cloud Run
@@ -86,6 +88,17 @@ PREDICTION_LOG_PATH=data/monitoring/predictions.jsonl uv run uvicorn riskflux.se
 uv run python -m riskflux.monitoring.replay_traffic     # replay loans through the API
 uv run python -m riskflux.monitoring.drift              # -> reports/drift/{drift_summary.json, drift_timeline.png}
 ```
+
+## Automation (GitHub Actions)
+| Workflow | Trigger | What it does |
+|---|---|---|
+| **CI** | every PR, push to main | ruff, pytest, Docker build + smoke test (stand-in model, no secrets) |
+| **Monitor** | weekly | serve @champion, replay traffic, drift job; dispatches **Retrain** on alert |
+| **Retrain** | monthly, on demand, on drift | simulated clock → no new outcomes: escalate via issue; else `dvc repro` → @challenger → PR with promotion dry run |
+| **Promote** | merged PR changes `dvc.lock` | moves @champion if the challenger is the model in `dvc.lock` and beats the champion |
+
+Backtest: a model left frozen for two years loses ~37% of its dollar value, mostly to calibration
+decay ([details](docs/DECISIONS.md)).
 
 ## Data
 - Source: [Lending Club 2007–2020Q3 on Kaggle](https://www.kaggle.com/datasets/ethon0426/lending-club-20072020q1)
