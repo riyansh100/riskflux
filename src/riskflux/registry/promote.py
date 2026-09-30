@@ -8,8 +8,10 @@ single gate between "trained" and "in production". Rollback = point @champion ba
 Run: uv run --env-file .env python -m riskflux.registry.promote
 """
 
+import argparse
 from dataclasses import dataclass
 from datetime import UTC, datetime
+from pathlib import Path
 
 import mlflow
 import numpy as np
@@ -22,6 +24,7 @@ from riskflux.config import CHALLENGER, CHAMPION, REGISTERED_MODEL, PromotionPar
 from riskflux.economics.cost import CostModel, decision_cost
 from riskflux.models.io import aux_for, load_split
 from riskflux.models.metrics import expected_calibration_error
+from riskflux.registry.lineage import data_hashes
 
 
 @dataclass(frozen=True)
@@ -72,17 +75,28 @@ def evaluate_version(
     )
 
 
-def promote(loans: pd.DataFrame, aux: pd.DataFrame, rules: PromotionParams) -> tuple[bool, str]:
+def promote(
+    loans: pd.DataFrame,
+    aux: pd.DataFrame,
+    rules: PromotionParams,
+    dry_run: bool = False,
+    expected_model_md5: str | None = None,
+) -> tuple[bool, str, list[Evaluation]]:
+    """Returns (promoted, reason, evaluations). dry_run: decide and report, change nothing.
+    expected_model_md5: the challenger must be exactly the model in this commit's dvc.lock
+    (content check, so it holds after squash merges or history rewrites)."""
     client = mlflow.MlflowClient()
     challenger = client.get_model_version_by_alias(REGISTERED_MODEL, CHALLENGER)
     if challenger.tags.get("git_dirty") == "true":
-        return False, f"v{challenger.version} was logged from uncommitted code"
+        return False, f"v{challenger.version} was logged from uncommitted code", []
+    if expected_model_md5 and challenger.tags.get("model.joblib_md5") != expected_model_md5:
+        return False, f"v{challenger.version} is not the model in this commit's dvc.lock", []
     try:
         champion = client.get_model_version_by_alias(REGISTERED_MODEL, CHAMPION)
     except MlflowException:
         champion = None
     if champion is not None and champion.version == challenger.version:
-        return False, f"v{challenger.version} is already the champion"
+        return False, f"v{challenger.version} is already the champion", []
 
     # Judge both with the challenger's economics (the most recent cost estimates).
     policy_model = mlflow.pyfunc.load_model(f"models:/{REGISTERED_MODEL}/{challenger.version}")
@@ -91,6 +105,9 @@ def promote(loans: pd.DataFrame, aux: pd.DataFrame, rules: PromotionParams) -> t
     challenger_eval = evaluate_version(challenger.version, loans, aux, cost_model)
     champion_eval = evaluate_version(champion.version, loans, aux, cost_model) if champion else None
     promoted, reason = decide(challenger_eval, champion_eval, rules)
+    evaluations = [e for e in (challenger_eval, champion_eval) if e is not None]
+    if dry_run:
+        return promoted, reason, evaluations
 
     client.set_model_version_tag(REGISTERED_MODEL, challenger.version, "promotion_decision", reason)
     if promoted:
@@ -98,16 +115,44 @@ def promote(loans: pd.DataFrame, aux: pd.DataFrame, rules: PromotionParams) -> t
         client.set_model_version_tag(
             REGISTERED_MODEL, challenger.version, "promoted_at", datetime.now(UTC).isoformat()
         )
-    return promoted, reason
+    return promoted, reason, evaluations
+
+
+def markdown_report(
+    promoted: bool, reason: str, evaluations: list[Evaluation], dry_run: bool
+) -> str:
+    verdict = ("would be PROMOTED" if dry_run else "PROMOTED") if promoted else "NOT promoted"
+    lines = [f"**Promotion decision: {verdict}** — {reason}", ""]
+    if evaluations:
+        lines += ["| role | version | cost ($) | ROC-AUC | ECE |", "|---|---|---|---|---|"]
+        for role, e in zip(("challenger", "champion"), evaluations, strict=False):
+            lines.append(
+                f"| {role} | v{e.version} | {e.cost:,.0f} | {e.roc_auc:.4f} | {e.ece:.4f} |"
+            )
+    return "\n".join(lines) + "\n"
 
 
 def main() -> None:
+    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser.add_argument("--dry-run", action="store_true", help="decide and report only")
+    parser.add_argument(
+        "--require-lock-match", action="store_true", help="challenger must match dvc.lock"
+    )
+    parser.add_argument("--report", type=Path, help="write a markdown summary here")
+    args = parser.parse_args()
+
     params = load_params()
-    # Promotion data: the newest labeled period. Corner cut: this is the test split,
-    # which makes test a selection set once more than one version competes.
+    # Promotion data: the newest matured window under the current clock (= test split).
+    # The champion was trained at an earlier clock and has never seen these loans.
     loans = load_split("test")
-    promoted, reason = promote(loans, aux_for(loans), params.promotion)
-    print(f"{'PROMOTED' if promoted else 'NOT promoted'}: {reason}")
+    expected = data_hashes()["model.joblib_md5"] if args.require_lock_match else None
+    promoted, reason, evaluations = promote(
+        loans, aux_for(loans), params.promotion, args.dry_run, expected
+    )
+    report = markdown_report(promoted, reason, evaluations, args.dry_run)
+    print(report)
+    if args.report:
+        args.report.write_text(report)
 
 
 if __name__ == "__main__":

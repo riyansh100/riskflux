@@ -136,3 +136,28 @@ stages:
       - monitoring
     outs:
       - data/monitoring/replay_loans.parquet
+
+  backtest:  # what would yearly retraining have been worth? (Step 10)
+    cmd: python -m riskflux.retrain.backtest
+    deps:
+      - data/interim/loans_clean.parquet
+      - data/interim/loans_aux.parquet
+      - src/riskflux/retrain/backtest.py
+      - src/riskflux/models/train.py
+      - src/riskflux/models/calibration.py
+      - src/riskflux/models/io.py
+      - src/riskflux/models/metrics.py
+      - src/riskflux/economics/cost.py
+      - src/riskflux/features/engineer.py
+      - src/riskflux/features/pipeline.py
+      - src/riskflux/columns.py
+      - src/riskflux/config.py
+    params:
+      - population
+      - model
+      - cost
+      - retraining
+      - backtest
+    metrics:
+      - reports/backtest.json:
+          cache: false

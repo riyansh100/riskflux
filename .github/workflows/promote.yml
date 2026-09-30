@@ -1,0 +1,34 @@
+# When a merged PR changes dvc.lock (e.g. a retrain), try to promote @challenger to
+# @champion. The challenger must be exactly the model in main's dvc.lock (content hash).
+name: Promote
+
+on:
+  push:
+    branches: [main]
+    paths: [dvc.lock]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: promote
+  cancel-in-progress: false
+
+jobs:
+  promote:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+        with:
+          dagshub-token: ${{ secrets.DAGSHUB_TOKEN }}
+
+      - name: Pull the promotion window (newest matured loans)
+        run: uv run dvc pull data/processed/test.parquet data/interim/loans_aux.parquet
+
+      - name: Champion/challenger decision
+        run: |
+          uv run python -m riskflux.registry.promote --require-lock-match --report promotion.md
+          cat promotion.md >> "$GITHUB_STEP_SUMMARY"

@@ -23,6 +23,7 @@ TRAIN_METRICS = Path("reports/train_metrics.json")
 TEST_METRICS = Path("reports/test_metrics.json")
 CALIBRATION_CURVE = Path("reports/calibration_test.csv")
 ABLATION_METRICS = Path("reports/ablation.json")
+BACKTEST_METRICS = Path("reports/backtest.json")
 
 # Monitoring (Step 9): replayed traffic, the API's prediction log, drift outputs
 REPLAY_PARQUET = Path("data/monitoring/replay_loans.parquet")
@@ -96,6 +97,17 @@ class MonitoringParams:
 
 
 @dataclass(frozen=True)
+class RetrainingParams:
+    as_of: pd.Timestamp  # simulated "today" (params: clock.as_of)
+    data_snapshot: str
+    maturity_months: int
+    train_start: str
+    val_months: int
+    test_months: int
+    backtest_as_of: list[str]
+
+
+@dataclass(frozen=True)
 class Params:
     population: PopulationParams
     splits: dict[str, Window]
@@ -103,6 +115,7 @@ class Params:
     cost: CostParams
     promotion: PromotionParams
     monitoring: MonitoringParams
+    retraining: RetrainingParams
 
 
 def load_params(path: Path = PARAMS_PATH) -> Params:
@@ -127,7 +140,37 @@ def load_params(path: Path = PARAMS_PATH) -> Params:
         cost=cost,
         promotion=PromotionParams(**raw["promotion"]),
         monitoring=_monitoring(raw["monitoring"], population.window),
+        retraining=_retraining(raw, population.window, splits),
     )
+
+
+def windows_for(as_of: str | pd.Timestamp, r: "RetrainingParams") -> tuple[Window, dict]:
+    """The simulated clock: at `as_of`, outcomes are known for loans issued up to
+    as_of - maturity. Newest `test_months` of those = test/promotion window, the
+    `val_months` before = validation, everything from train_start before that = train."""
+    month = pd.offsets.MonthBegin
+    end = pd.Timestamp(as_of) - month(r.maturity_months)
+    test = Window(end - month(r.test_months - 1), end)
+    val = Window(test.start - month(r.val_months), test.start - month(1))
+    train = Window(pd.Timestamp(r.train_start), val.start - month(1))
+    if train.start > train.end:
+        raise ValueError(f"as_of {as_of} leaves no training data")
+    return Window(train.start, end), {"train": train, "val": val, "test": test}
+
+
+def _retraining(raw: dict, population: Window, splits: dict[str, Window]) -> RetrainingParams:
+    params = RetrainingParams(
+        as_of=pd.Timestamp(raw["clock"]["as_of"]),
+        backtest_as_of=list(raw["backtest"]["as_of"]),
+        **raw["retraining"],
+    )
+    expected_population, expected_splits = windows_for(params.as_of, params)
+    if (expected_population, expected_splits) != (population, splits):
+        raise ValueError(
+            f"params.yaml population/split don't match clock.as_of={params.as_of:%Y-%m}; "
+            "regenerate them with `python -m riskflux.retrain.plan --apply`"
+        )
+    return params
 
 
 def _monitoring(raw: dict, population: Window) -> MonitoringParams:

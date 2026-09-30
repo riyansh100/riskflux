@@ -1,0 +1,58 @@
+{
+  "rows": [
+    {
+      "model_as_of": "2018-09",
+      "evaluated_on": "2014-07..2015-04",
+      "eval_as_of": "2018-09",
+      "roc_auc": 0.6808,
+      "ece": 0.0079,
+      "savings_pct": 1.67,
+      "reject_rate": 0.0579
+    },
+    {
+      "model_as_of": "2018-09",
+      "evaluated_on": "2015-07..2016-04",
+      "eval_as_of": "2019-09",
+      "roc_auc": 0.6892,
+      "ece": 0.0182,
+      "savings_pct": 3.04,
+      "reject_rate": 0.0538
+    },
+    {
+      "model_as_of": "2019-09",
+      "evaluated_on": "2015-07..2016-04",
+      "eval_as_of": "2019-09",
+      "roc_auc": 0.7005,
+      "ece": 0.0055,
+      "savings_pct": 5.17,
+      "reject_rate": 0.1088
+    },
+    {
+      "model_as_of": "2018-09",
+      "evaluated_on": "2016-07..2017-04",
+      "eval_as_of": "2020-09",
+      "roc_auc": 0.6724,
+      "ece": 0.0235,
+      "savings_pct": 1.85,
+      "reject_rate": 0.0411
+    },
+    {
+      "model_as_of": "2019-09",
+      "evaluated_on": "2016-07..2017-04",
+      "eval_as_of": "2020-09",
+      "roc_auc": 0.6833,
+      "ece": 0.0125,
+      "savings_pct": 2.8,
+      "reject_rate": 0.0863
+    },
+    {
+      "model_as_of": "2020-09",
+      "evaluated_on": "2016-07..2017-04",
+      "eval_as_of": "2020-09",
+      "roc_auc": 0.6883,
+      "ece": 0.005,
+      "savings_pct": 2.93,
+      "reject_rate": 0.1391
+    }
+  ]
+}

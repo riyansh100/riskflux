@@ -1,0 +1,132 @@
+# Retraining: monthly, on demand, or when the monitor detects drift.
+#
+#   plan  -> new outcomes matured since the last training?
+#     no  -> stop, and on drift open/update an issue: retraining can't help until labels arrive
+#     yes -> dvc repro -> branch + commit -> dvc push -> register @challenger
+#            -> promotion dry run -> pull request. A human merges; the Promote workflow
+#               then moves @champion.
+name: Retrain
+
+on:
+  schedule:
+    - cron: "0 7 1 * *"  # 1st of each month, 07:00 UTC
+  workflow_dispatch:
+    inputs:
+      as_of:
+        description: "Simulated today (YYYY-MM). Empty = today's date (capped at the data snapshot)."
+        required: false
+        default: ""
+      reason:
+        description: Why this run was started
+        required: false
+        default: manual
+
+permissions:
+  contents: write       # push the retrain branch
+  pull-requests: write  # open the PR
+  issues: write         # escalate drift that retraining can't fix yet
+
+concurrency:
+  group: retrain
+  cancel-in-progress: false
+
+jobs:
+  retrain:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      REASON: ${{ inputs.reason || 'scheduled' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+        with:
+          dagshub-token: ${{ secrets.DAGSHUB_TOKEN }}
+
+      - name: Plan (simulated clock)
+        id: plan
+        env:
+          INPUT_AS_OF: ${{ inputs.as_of }}
+        run: |
+          AS_OF="${INPUT_AS_OF:-$(date +%Y-%m)}"
+          echo "as_of=$AS_OF" >> "$GITHUB_OUTPUT"
+          set +e
+          uv run python -m riskflux.retrain.plan --as-of "$AS_OF" --apply > plan.txt
+          code=$?
+          set -e
+          cat plan.txt
+          case "$code" in
+            0) echo "retrain=true" >> "$GITHUB_OUTPUT" ;;
+            3) echo "retrain=false" >> "$GITHUB_OUTPUT" ;;
+            *) exit "$code" ;;
+          esac
+
+      - name: No newly matured outcomes -> escalate instead of retraining
+        if: steps.plan.outputs.retrain == 'false'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          AS_OF: ${{ steps.plan.outputs.as_of }}
+        run: |
+          {
+            echo "### No retraining: no newly matured outcomes"
+            echo "Trigger: **$REASON**. $(cat plan.txt)"
+            echo
+            echo "36-month loans take ~3.5 years to show their outcome, so drift is visible long"
+            echo "before a retrain can learn from it. Escalate to the model owner: review the"
+            echo "decision threshold / policy overlay rather than retraining on stale labels."
+          } >> "$GITHUB_STEP_SUMMARY"
+          if [[ "$REASON" == drift* ]]; then
+            gh label create drift --color D93F0B --description "Monitoring alert" --force
+            open_issue=$(gh issue list --label drift --state open --json number --jq '.[0].number // empty')
+            body="$REASON (as_of $AS_OF). No newly matured outcomes, so retraining can't help yet. See the Monitor run's drift report; review the decision threshold / policy overlay."
+            if [ -n "$open_issue" ]; then
+              gh issue comment "$open_issue" --body "$body"
+            else
+              gh issue create --label drift --title "Drift detected: model needs review" --body "$body"
+            fi
+          fi
+
+      - name: Retrain (dvc repro)
+        if: steps.plan.outputs.retrain == 'true'
+        run: |
+          uv run dvc pull
+          uv run dvc repro
+
+      - name: Commit to a retrain branch and push data
+        if: steps.plan.outputs.retrain == 'true'
+        id: branch
+        env:
+          AS_OF: ${{ steps.plan.outputs.as_of }}
+        run: |
+          BRANCH="retrain/as-of-$AS_OF"
+          git config user.name "Riyansh Sachdev (retrain bot)"
+          git config user.email "174936089+riyansh100@users.noreply.github.com"
+          git switch -c "$BRANCH"
+          git add params.yaml dvc.lock models/policy.json reports
+          git commit -m "Retrain as of $AS_OF ($REASON)"
+          git push -u origin "$BRANCH"
+          uv run dvc push
+          echo "name=$BRANCH" >> "$GITHUB_OUTPUT"
+
+      - name: Register @challenger and run the promotion dry run
+        if: steps.plan.outputs.retrain == 'true'
+        run: |
+          uv run python -m riskflux.registry.log_run
+          uv run python -m riskflux.registry.promote --dry-run --report promotion.md
+
+      - name: Open the pull request
+        if: steps.plan.outputs.retrain == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          AS_OF: ${{ steps.plan.outputs.as_of }}
+        run: |
+          {
+            echo "Automated retrain as of **$AS_OF** (trigger: $REASON)."
+            echo
+            echo '```'; cat plan.txt; echo '```'
+            echo
+            cat promotion.md
+            echo
+            echo "Merging this PR runs the Promote workflow, which moves @champion if the rules above pass."
+          } > pr.md
+          gh pr create --base main --head "${{ steps.branch.outputs.name }}" \
+            --title "Retrain as of $AS_OF" --body-file pr.md

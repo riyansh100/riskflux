@@ -2975,6 +2975,7 @@ dev = [
     { name = "nbconvert" },
     { name = "openpyxl" },
     { name = "pytest" },
+    { name = "ruamel-yaml" },
     { name = "ruff" },
 ]
 
@@ -3007,6 +3008,7 @@ dev = [
     { name = "nbconvert", specifier = ">=7.17.1" },
     { name = "openpyxl", specifier = ">=3.1.5" },
     { name = "pytest", specifier = ">=9.1.1" },
+    { name = "ruamel-yaml", specifier = ">=0.19.1" },
     { name = "ruff", specifier = ">=0.16.8" },
 ]
 

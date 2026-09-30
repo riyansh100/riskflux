@@ -1,0 +1,69 @@
+# Every PR and every push to main: lint, tests, and a Docker build + smoke test.
+# Needs no secrets: data-dependent tests skip, and the image is built with a stand-in model.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Lint + tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+
+      - name: Ruff lint
+        run: uv run ruff check .
+
+      - name: Ruff format
+        run: uv run ruff format --check .
+
+      - name: Pytest
+        env:
+          MLFLOW_DISABLE_AGENT_HINT: "1"
+        run: uv run pytest -q -p no:warnings
+
+  docker:
+    name: Docker build + smoke test
+    needs: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+
+      - name: Build a stand-in model (no registry credentials in CI)
+        run: uv run python -m tests.stub_model build/model
+
+      - name: Build image
+        run: docker build -t riskflux:ci .
+
+      - name: Smoke test the container
+        run: |
+          test "$(docker inspect -f '{{.Config.User}}' riskflux:ci)" = "app"   # non-root
+          docker run -d --name api -p 8080:8080 riskflux:ci
+          for _ in $(seq 1 30); do curl -sf localhost:8080/ready && break; sleep 1; done
+          curl -sf localhost:8080/health
+          curl -sf localhost:8080/ready
+          curl -sf -X POST localhost:8080/predict -H 'content-type: application/json' \
+            -d '{"loan_amnt":10000,"annual_inc":60000,"fico_range_low":700,"fico_range_high":704,
+                 "home_ownership":"RENT","purpose":"credit_card","earliest_cr_line":"2009-11-01"}' \
+            | tee response.json
+          grep -q '"decision"' response.json
+          test "$(curl -s -o /dev/null -w '%{http_code}' -X POST localhost:8080/predict \
+            -H 'content-type: application/json' -d '{"grade":"B"}')" = "422"
+
+      - name: Container logs
+        if: always()
+        run: docker logs api || true
